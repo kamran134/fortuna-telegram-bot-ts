@@ -209,19 +209,20 @@ npm start
 
 ## 🐳 Docker
 
+### Локальная разработка
 ```bash
-# Запуск
-docker-compose up -d
-
-# Остановка
-docker-compose down
-
-# Логи
-docker-compose logs -f bot
-
-# Перезапуск
-docker-compose restart bot
+docker-compose up -d          # Запуск
+docker-compose down           # Остановка
+docker-compose logs -f bot    # Логи
+docker-compose restart bot    # Перезапуск
 ```
+
+### Production деплой
+См. подробные инструкции:
+- 🚀 [QUICKSTART.md](./QUICKSTART.md) - Быстрый старт (5 шагов)
+- 📚 [DEPLOY.md](./DEPLOY.md) - Детальная инструкция по CI/CD
+
+**GitHub Actions автоматически деплоит при push в master!**
 
 ## 🎯 Что улучшено
 

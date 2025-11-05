@@ -1,0 +1,76 @@
+# Docker Compose для продакшн сервера
+# Этот файл нужно использовать на сервере
+
+version: '3.8'
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: fortuna-bot-db
+    restart: always
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
+      POSTGRES_DB: fortuna
+      POSTGRES_USER: postgres
+    volumes:
+      - ~/pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: fortuna-bot-redis
+    restart: always
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  web:
+    image: ghcr.io/kamran134/fortuna-telegram-bot-ts:latest
+    container_name: fortuna-telegram-bot-ts
+    restart: always
+    ports:
+      - "8443:8443"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      # Telegram Bot
+      TELEGRAM_TOKEN: ${TELEGRAM_TOKEN}
+      CREATOR_IDS: ${CREATOR_IDS}
+      
+      # Database
+      DATABASE_USER: postgres
+      DATABASE_HOST: db
+      DATABASE_NAME: fortuna
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD}
+      DATABASE_PORT: 5432
+      
+      # Redis
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      
+      # Application
+      NODE_ENV: production
+      PORT: 8443
+    healthcheck:
+      test: ["CMD", "node", "-e", "process.exit(0)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  default:
+    name: fortuna-network
