@@ -18,7 +18,7 @@ export class CommandHandler {
   private userService: UserService;
   private gameService: GameService;
 
-  constructor(private pool: Pool, private bot: TelegramBot) {
+  constructor(pool: Pool, private bot: TelegramBot) {
     const userRepo = new UserRepository(pool);
     const gameRepo = new GameRepository(pool);
     const gamePlayerRepo = new GamePlayerRepository(pool);

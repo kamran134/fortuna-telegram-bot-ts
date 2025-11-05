@@ -15,7 +15,7 @@ export class CallbackHandler {
   private gameRepository: GameRepository;
   private jokeRepository: JokeRepository;
 
-  constructor(private pool: Pool, private bot: TelegramBot) {
+  constructor(pool: Pool, private bot: TelegramBot) {
     this.gamePlayerRepository = new GamePlayerRepository(pool);
     this.gameRepository = new GameRepository(pool);
     this.jokeRepository = new JokeRepository(pool);

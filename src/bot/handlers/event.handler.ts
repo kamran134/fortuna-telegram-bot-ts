@@ -6,7 +6,9 @@ import TelegramBot, { Message } from 'node-telegram-bot-api';
 import { Pool } from 'pg';
 
 export class EventHandler {
-  constructor(private pool: Pool, private bot: TelegramBot) {}
+  constructor(_pool: Pool, private bot: TelegramBot) {
+    // Pool parameter kept for future use
+  }
 
   /**
    * Handle new chat members
