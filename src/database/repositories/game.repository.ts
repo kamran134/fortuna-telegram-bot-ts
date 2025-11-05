@@ -48,12 +48,16 @@ export class GameRepository {
     const { date, start, end, users_limit, location, label } = dto;
 
     try {
-      const gameDate = moment(date, 'DD.MM.YYYY').toISOString();
+      // Преобразуем дату в формат YYYY-MM-DD для PostgreSQL DATE типа
+      const gameDate = moment(date, 'DD.MM.YYYY').format('YYYY-MM-DD');
       
       const result = await this.pool.query<{ id: number }>(
         `INSERT INTO games (game_date, game_starts, game_ends, users_limit, place, chat_id, status, label) 
          VALUES ($1, $2, $3, $4, $5, $6, TRUE, $7) 
-         ON CONFLICT(chat_id, game_date, label) DO NOTHING 
+         ON CONFLICT(chat_id, game_date, game_starts, game_ends, place) DO UPDATE SET
+           users_limit = EXCLUDED.users_limit,
+           status = TRUE,
+           label = EXCLUDED.label
          RETURNING id`,
         [gameDate, start, end, users_limit, location, chatId, label]
       );
