@@ -60,9 +60,6 @@ jobs:
           script: |
             cd ${{ secrets.SERVER_PATH }}
             
-            # Login to GitHub Container Registry (для приватных образов)
-            echo ${{ secrets.GITHUB_TOKEN }} | docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
-            
             # Pull latest image
             docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
             
