@@ -64,10 +64,10 @@ jobs:
             docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
             
             # Stop and remove old container
-            docker-compose down
+            docker compose down
             
             # Start new container
-            docker-compose up -d
+            docker compose up -d
             
             # Clean up old images
             docker image prune -f
