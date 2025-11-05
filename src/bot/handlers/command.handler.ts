@@ -23,7 +23,8 @@ export class CommandHandler {
     const gameRepo = new GameRepository(pool);
     const gamePlayerRepo = new GamePlayerRepository(pool);
     const jokeRepo = new JokeRepository(pool);
-    const adminGroupRepo = new AdminGroupRepository(pool);
+    // Admin group repo will be used in future features
+    new AdminGroupRepository(pool);
 
     this.userService = new UserService(userRepo, jokeRepo);
     this.gameService = new GameService(gameRepo, gamePlayerRepo, userRepo, jokeRepo);

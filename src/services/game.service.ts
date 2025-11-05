@@ -149,7 +149,7 @@ export class GameService {
       const gameGroups = this.groupPlayersByGame(gamePlayers);
       const messages: string[] = [];
 
-      for (const [gameId, data] of Object.entries(gameGroups)) {
+      for (const data of Object.values(gameGroups)) {
         const placeLeft = data.users_limit - data.players.length;
         interface PlayerDisplayData {
             first_name: string;
@@ -196,7 +196,7 @@ export class GameService {
       try {
         const joke = await this.jokeRepository.getJoke(JokeType.TAG_REGISTERED);
         return 'Только одмэн может тегать игроков! ' + joke;
-      } catch (error) {
+      } catch {
         return 'Только одмэн может тегать игроков!';
       }
     }
@@ -208,7 +208,7 @@ export class GameService {
         return 'Нет записавшихся на игру. Тревожить некого.';
       }
 
-      const tagged = tagUsersByCommas(gamePlayers as any);
+      const tagged = tagUsersByCommas(gamePlayers);
       return `${tagged}, у одмэна к вам дело, ща напишет. Не перебивайте!`;
     } catch (error) {
       console.error('GAME SERVICE - TAG PLAYERS ERROR:', error);
@@ -224,7 +224,7 @@ export class GameService {
       try {
         const joke = await this.jokeRepository.getJoke(JokeType.DEACTIVE_GAME);
         await bot.sendMessage(chatId, `Только одмэн может закрыть игру. ${joke}`, { parse_mode: 'HTML' });
-      } catch (error) {
+      } catch {
         await bot.sendMessage(chatId, 'Только одмэн может закрыть игру.');
       }
       return;
@@ -258,8 +258,18 @@ export class GameService {
   /**
    * Group players by game ID
    */
-  private groupPlayersByGame(players: GamePlayerDetails[]): Record<string, any> {
-    const groups: Record<string, any> = {};
+  private groupPlayersByGame(players: GamePlayerDetails[]) {
+    interface GameGroupData {
+      players: GamePlayerDetails[];
+      game_date: Date;
+      game_starts: string;
+      game_ends: string;
+      place: string;
+      label: string;
+      users_limit: number;
+    }
+
+    const groups: Record<string, GameGroupData> = {};
 
     for (const player of players) {
       if (!groups[player.game_id]) {

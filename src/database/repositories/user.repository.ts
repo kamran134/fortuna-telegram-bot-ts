@@ -234,7 +234,7 @@ export class UserRepository {
 
     try {
       const updateFields: string[] = [];
-      const values: any[] = [];
+      const values: unknown[] = [];
       let paramCount = 1;
 
       if (firstName) {

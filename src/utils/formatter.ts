@@ -4,10 +4,17 @@
 
 import { User } from '../types/user.types';
 
+interface FormattableUser {
+  user_id?: number;
+  first_name: string;
+  last_name?: string;
+  username?: string;
+}
+
 /**
  * Format users list with HTML tags
  */
-export function tagUsers(users: User[]): string {
+export function tagUsers(users: (User | FormattableUser)[]): string {
   return users
     .map((user, index) => {
       if (user.username) {
@@ -21,13 +28,14 @@ export function tagUsers(users: User[]): string {
 /**
  * Format users list with commas
  */
-export function tagUsersByCommas(users: User[]): string {
+export function tagUsersByCommas(users: (User | FormattableUser)[]): string {
   return users
     .map(user => {
       if (user.username) {
         return `@${user.username}`;
       }
-      return `<a href="tg://user?id=${user.user_id}">${user.first_name}</a>`;
+      const userId = 'user_id' in user ? user.user_id : ('id' in user ? (user as User).user_id : 0);
+      return `<a href="tg://user?id=${userId}">${user.first_name}</a>`;
     })
     .join(', ');
 }
@@ -35,7 +43,7 @@ export function tagUsersByCommas(users: User[]): string {
 /**
  * Format users list without tags
  */
-export function listUsers(users: User[]): string {
+export function listUsers(users: (User | FormattableUser)[]): string {
   return users
     .map((user, index) => {
       const lastName = user.last_name ? ` ${user.last_name}` : '';

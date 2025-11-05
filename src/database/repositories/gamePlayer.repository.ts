@@ -3,7 +3,7 @@
  */
 
 import { Pool } from 'pg';
-import { GamePlayer, CreateGamePlayerDto, GamePlayerDetails } from '../../types/game.types';
+import { CreateGamePlayerDto, GamePlayerDetails } from '../../types/game.types';
 
 export class GamePlayerRepository {
   constructor(private pool: Pool) {}
@@ -60,7 +60,7 @@ export class GamePlayerRepository {
    * Add player to game by game ID
    */
   async addGamePlayerById(dto: CreateGamePlayerDto & { chatId: number }): Promise<string | null> {
-    const { gameId, chatId, userId, confirmed_attendance } = dto;
+    const { gameId, userId, confirmed_attendance } = dto;
 
     try {
       // Check if player already exists in game

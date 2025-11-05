@@ -35,7 +35,7 @@ export class UserService {
       try {
         const joke = await this.jokeRepository.getJoke(JokeType.TAG_REGISTERED);
         return `Только одмэн может массово беспокоить всех! ${joke}`;
-      } catch (error) {
+      } catch {
         return 'Только одмэн может массово беспокоить всех!';
       }
     }
@@ -87,7 +87,7 @@ export class UserService {
         return 'Все активные, молодцы! 👏';
       }
 
-      const usersString = tagUsers(users as any);
+      const usersString = tagUsers(users);
       return 'Значит так, \n\n' + usersString + '\n\nпочему не посещаем игры? Бот негодуэ 🤨';
     } catch (error) {
       console.error('USER SERVICE - INACTIVE USERS ERROR:', error);

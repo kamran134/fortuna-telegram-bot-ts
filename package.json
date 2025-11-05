@@ -3,6 +3,7 @@
   "version": "2.0.0",
   "description": "Telegram bot for Fortuna Volleyball Group - TypeScript Edition",
   "main": "dist/index.js",
+  "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc",

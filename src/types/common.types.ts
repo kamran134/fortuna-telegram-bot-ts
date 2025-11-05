@@ -11,12 +11,19 @@ export type AzCase = 'именительный' | 'родительный' | 'д
 export interface MessageResponse {
   success: boolean;
   message: string;
-  data?: any;
+  data?: unknown;
 }
 
 export interface PaginationOptions {
   limit?: number;
   offset?: number;
+}
+
+export interface UserForTagging {
+  first_name: string;
+  last_name?: string;
+  username?: string;
+  is_guest?: boolean;
 }
 
 export interface DatabaseConfig {
