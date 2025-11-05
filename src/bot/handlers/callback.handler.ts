@@ -96,7 +96,7 @@ export class CallbackHandler {
     const gameId = parseInt(query.data?.replace('decline_', '') || '0');
     const username = query.from.username;
 
-    const label = await this.gamePlayerRepository.removeGamePlayerById(gameId, userId);
+    const label = await this.gamePlayerRepository.removeGamePlayerById(gameId, userId, chatId);
 
     if (label) {
       const joke = await this.jokeRepository.getJoke(JokeType.LEFT_GAME);
@@ -152,7 +152,7 @@ export class CallbackHandler {
     const gameId = parseInt(parts[2] || '0');
     const username = query.from.username;
 
-    const label = await this.gamePlayerRepository.removeGamePlayerById(gameId, userId);
+    const label = await this.gamePlayerRepository.removeGamePlayerById(gameId, userId, chatId);
 
     if (label) {
       await this.bot.sendMessage(chatId, `@${username} удирает с игры на ${declineRussian(label, 'винительный')}. Бейте предателя! 😡`);

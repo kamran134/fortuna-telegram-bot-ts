@@ -60,27 +60,49 @@ export class GamePlayerRepository {
    * Add player to game by game ID
    */
   async addGamePlayerById(dto: CreateGamePlayerDto & { chatId: number }): Promise<string | null> {
-    const { gameId, userId, confirmed_attendance } = dto;
+    const { gameId, userId, confirmed_attendance, chatId } = dto;
 
     try {
+      // First, ensure user exists in users table
+      const userCheck = await this.pool.query(
+        'SELECT id FROM users WHERE user_id = $1 AND chat_id = $2',
+        [userId, chatId]
+      );
+
+      let userDbId: number;
+
+      if (userCheck.rows.length === 0) {
+        // User doesn't exist, create them with default info
+        // Note: We'll update with real info when they first send a message
+        const insertResult = await this.pool.query(
+          `INSERT INTO users (user_id, first_name, last_name, username, chat_id, active) 
+           VALUES ($1, 'Unknown', '', '', $2, TRUE) 
+           RETURNING id`,
+          [userId, chatId]
+        );
+        userDbId = insertResult.rows[0].id;
+      } else {
+        userDbId = userCheck.rows[0].id;
+      }
+
       // Check if player already exists in game
       const checkPlayer = await this.pool.query(
         'SELECT * FROM game_users WHERE user_id = $1 AND game_id = $2',
-        [userId, gameId]
+        [userDbId, gameId]
       );
 
       if (checkPlayer.rows.length > 0) {
         // Update confirmed_attendance if player already exists
         await this.pool.query(
           'UPDATE game_users SET confirmed_attendance = $1 WHERE user_id = $2 AND game_id = $3',
-          [confirmed_attendance, userId, gameId]
+          [confirmed_attendance, userDbId, gameId]
         );
       } else {
         // Insert new game player
         await this.pool.query(
           `INSERT INTO game_users (user_id, game_id, participate_time, confirmed_attendance) 
            VALUES ($1, $2, NOW(), $3)`,
-          [userId, gameId, confirmed_attendance]
+          [userDbId, gameId, confirmed_attendance]
         );
       }
 
@@ -129,12 +151,25 @@ export class GamePlayerRepository {
   /**
    * Remove player from game
    */
-  async removeGamePlayerById(gameId: number, userId: number): Promise<string | null> {
+  async removeGamePlayerById(gameId: number, telegramUserId: number, chatId: number): Promise<string | null> {
     try {
+      // Find user database ID
+      const userResult = await this.pool.query(
+        'SELECT id FROM users WHERE user_id = $1 AND chat_id = $2',
+        [telegramUserId, chatId]
+      );
+
+      if (userResult.rows.length === 0) {
+        // User doesn't exist, nothing to remove
+        return null;
+      }
+
+      const userDbId = userResult.rows[0].id;
+
       // Delete player from game
       await this.pool.query(
         'DELETE FROM game_users WHERE user_id = $1 AND game_id = $2',
-        [userId, gameId]
+        [userDbId, gameId]
       );
 
       // Get game label
