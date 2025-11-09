@@ -286,6 +286,139 @@ export class GameService {
       groups[player.game_id].players.push(player);
     }
 
+    // Sort players in each game: confirmed first, then unconfirmed
+    for (const gameData of Object.values(groups)) {
+      gameData.players.sort((a, b) => {
+        // Confirmed first
+        if (a.confirmed_attendance && !b.confirmed_attendance) return -1;
+        if (!a.confirmed_attendance && b.confirmed_attendance) return 1;
+        return 0;
+      });
+    }
+
     return groups;
+  }
+
+  /**
+   * Show games start times
+   */
+  async showGamesTimes(chatId: number, bot: TelegramBot): Promise<void> {
+    try {
+      const gamesTimes = await this.gameRepository.getGamesTimes(chatId);
+
+      if (!gamesTimes || gamesTimes.length === 0) {
+        await bot.sendMessage(chatId, 'Нет активных игр');
+        return;
+      }
+
+      const timesString = gamesTimes
+        .map(game => `${game.label}: ${moment(game.game_starts, 'HH:mm:ss').format('HH:mm')}`)
+        .join(', ');
+
+      await bot.sendMessage(chatId, `Мэээх. Сколько можно спрашивать? 😒\n${timesString}`);
+    } catch (error) {
+      console.error('SHOW GAMES TIMES ERROR:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Tag undecided players
+   */
+  async tagUndecidedPlayers(chatId: number, bot: TelegramBot): Promise<void> {
+    try {
+      const players = await this.gamePlayerRepository.getUndecidedPlayers(chatId);
+
+      if (!players || players.length === 0) {
+        await bot.sendMessage(chatId, 'Нет неопределившихся игроков');
+        return;
+      }
+
+      const uniquePlayers = Array.from(
+        new Map(players.map(p => [p.user_id, p])).values()
+      );
+
+      const taggedPlayers = tagUsersByCommas(uniquePlayers);
+      const message = `${taggedPlayers}, ну шо, товарищи? Пришло время определиться! Играть будем или нет?`;
+
+      await bot.sendMessage(chatId, message, { parse_mode: 'HTML' });
+    } catch (error) {
+      console.error('TAG UNDECIDED PLAYERS ERROR:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Change game limit
+   */
+  async changeGameLimit(chatId: number, label: string, newLimit: number, bot: TelegramBot): Promise<void> {
+    try {
+      const updatedLabel = await this.gameRepository.changeGameLimit({ chatId, label, limit: newLimit });
+
+      if (updatedLabel) {
+        const declinedLabel = declineRussian(updatedLabel, 'винительный');
+        await bot.sendMessage(chatId, `Изменено количество игроков на игру в ${declinedLabel}!`);
+      } else {
+        await bot.sendMessage(chatId, 'Кажется, такой игры больше нет');
+      }
+    } catch (error) {
+      console.error('CHANGE GAME LIMIT ERROR:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Add guest to game
+   */
+  async addGuestToGame(
+    chatId: number,
+    gameLabel: string,
+    fullname: string,
+    confirmedAttendance: boolean,
+    bot: TelegramBot
+  ): Promise<void> {
+    try {
+      const names = fullname.split(' ');
+      const firstName = names[0];
+      const lastName = names.slice(1).join(' ') || '';
+
+      // Add guest user
+      const result = await this.userRepository.addUser({
+        user_id: 0, // Guest doesn't have telegram ID
+        first_name: firstName,
+        last_name: lastName,
+        chat_id: chatId,
+        is_guest: true,
+      });
+
+      if (result === Messages.USER_ALREADY_IN_GROUP) {
+        await bot.sendMessage(chatId, 'Гость с таким именем уже существует');
+        return;
+      }
+
+      // Get the guest user
+      const guest = await this.userRepository.getUserByName(chatId, firstName, lastName);
+      if (!guest) {
+        await bot.sendMessage(chatId, 'Не удалось добавить гостя');
+        return;
+      }
+
+      // Add guest to game
+      await this.gamePlayerRepository.addGamePlayerByLabel(chatId, gameLabel, guest.id, confirmedAttendance);
+
+      const declinedLabel = declineRussian(gameLabel, 'винительный');
+      const certainty = confirmedAttendance ? '' : ' Но это не точно :(';
+      await bot.sendMessage(
+        chatId,
+        `Вы записали ${firstName} ${lastName} на ${declinedLabel}!${certainty}`
+      );
+    } catch (error) {
+      console.error('ADD GUEST ERROR:', error);
+      if (error instanceof Error && error.message === 'Game not found') {
+        await bot.sendMessage(chatId, 'Игра не найдена');
+      } else {
+        await bot.sendMessage(chatId, 'Не удалось добавить гостя в игру');
+      }
+    }
   }
 }

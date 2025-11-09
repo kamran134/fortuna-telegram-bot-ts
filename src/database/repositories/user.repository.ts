@@ -149,6 +149,30 @@ export class UserRepository {
   }
 
   /**
+   * Update user information
+   */
+  async updateUser(dto: UpdateUserDto): Promise<User | null> {
+    const { id, firstName, lastName, fullnameAz } = dto;
+    
+    try {
+      const result = await this.pool.query<User>(
+        `UPDATE users 
+         SET first_name = COALESCE($1, first_name),
+             last_name = COALESCE($2, last_name),
+             fullname_az = COALESCE($3, fullname_az)
+         WHERE id = $4
+         RETURNING *`,
+        [firstName, lastName, fullnameAz, id]
+      );
+      
+      return result.rows[0] || null;
+    } catch (error) {
+      console.error('UPDATE USER ERROR:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Add guest user
    */
   async addGuest(chatId: number, firstName: string, lastName: string): Promise<number> {
@@ -283,6 +307,41 @@ export class UserRepository {
       return (result.rowCount || 0) > 0;
     } catch (error) {
       console.error('REMOVE USER ERROR:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get user by name (for guests)
+   */
+  async getUserByName(chatId: number, firstName: string, lastName: string): Promise<User | null> {
+    try {
+      const result = await this.pool.query<User>(
+        'SELECT * FROM users WHERE chat_id = $1 AND first_name = $2 AND last_name = $3 AND is_guest = TRUE ORDER BY id DESC LIMIT 1',
+        [chatId, firstName, lastName]
+      );
+      return result.rows[0] || null;
+    } catch (error) {
+      console.error('GET USER BY NAME ERROR:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get all users by chat ID (for admin commands)
+   */
+  async getUsersByChatId(chatId: number): Promise<User[]> {
+    try {
+      const result = await this.pool.query<User>(
+        `SELECT u.* FROM group_users gu 
+         LEFT JOIN users u ON gu.user_id = u.id 
+         WHERE gu.chat_id = $1 AND u.is_guest = FALSE AND u.active = TRUE 
+         ORDER BY u.first_name`,
+        [chatId]
+      );
+      return result.rows;
+    } catch (error) {
+      console.error('GET USERS BY CHAT ID ERROR:', error);
       throw error;
     }
   }

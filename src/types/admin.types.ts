@@ -19,6 +19,7 @@ export enum JokeType {
   TAG_REGISTERED = 0,
   DEACTIVE_GAME = 1,
   LEFT_GAME = 2,
+  AGILLIOL = 3,
 }
 
 export interface Joke {

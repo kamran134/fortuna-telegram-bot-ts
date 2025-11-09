@@ -4,7 +4,7 @@
 
 import { UserRepository } from '../database/repositories/user.repository';
 import { JokeRepository } from '../database/repositories/joke.repository';
-import { CreateUserDto } from '../types/user.types';
+import { CreateUserDto, UpdateUserDto } from '../types/user.types';
 import { JokeType } from '../types/admin.types';
 import { tagUsers, listUsers } from '../utils/formatter';
 import { Messages } from '../constants/messages';
@@ -91,6 +91,28 @@ export class UserService {
       return 'Значит так, \n\n' + usersString + '\n\nпочему не посещаем игры? Бот негодуэ 🤨';
     } catch (error) {
       console.error('USER SERVICE - INACTIVE USERS ERROR:', error);
+      return Messages.ERROR_OCCURRED;
+    }
+  }
+
+  /**
+   * Update user information
+   */
+  async updateUserInfo(dto: UpdateUserDto): Promise<string> {
+    try {
+      const user = await this.userRepository.updateUser(dto);
+      
+      if (!user) {
+        return 'Пользователь не найден';
+      }
+
+      return `Данные игрока успешно отредактированы!\n` +
+        `ID: ${user.id}\n` +
+        `Имя: ${user.first_name}\n` +
+        `Фамилия: ${user.last_name || ''}\n` +
+        `На азербайджанском: ${user.fullname_az || ''}`;
+    } catch (error) {
+      console.error('USER SERVICE - UPDATE ERROR:', error);
       return Messages.ERROR_OCCURRED;
     }
   }

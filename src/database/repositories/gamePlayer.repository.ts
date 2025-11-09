@@ -166,13 +166,18 @@ export class GamePlayerRepository {
 
       const userDbId = userResult.rows[0].id;
 
-      // Delete player from game
-      await this.pool.query(
+      // Delete player from game and check if anything was deleted
+      const deleteResult = await this.pool.query(
         'DELETE FROM game_users WHERE user_id = $1 AND game_id = $2',
         [userDbId, gameId]
       );
 
-      // Get game label
+      // If no rows were deleted, player wasn't in the game
+      if (!deleteResult.rowCount || deleteResult.rowCount === 0) {
+        return null;
+      }
+
+      // Get game label only if player was actually removed
       const gameResult = await this.pool.query<{ label: string }>(
         'SELECT label FROM games WHERE id = $1',
         [gameId]

@@ -170,4 +170,11 @@ export class GameRepository {
       throw error;
     }
   }
+
+  /**
+   * Get all active games (alias for getGames for clarity)
+   */
+  async getActiveGames(chatId: number): Promise<Game[]> {
+    return this.getGames(chatId);
+  }
 }

@@ -85,4 +85,20 @@ export class JokeRepository {
       throw error;
     }
   }
+
+  /**
+   * Get random joke by type (returns full Joke object)
+   */
+  async getRandomJoke(jokeType: JokeType): Promise<Joke | null> {
+    try {
+      const result = await this.pool.query<Joke>(
+        'SELECT * FROM jokes WHERE type = $1 ORDER BY RANDOM() LIMIT 1',
+        [jokeType]
+      );
+      return result.rows[0] || null;
+    } catch (error) {
+      console.error('GET RANDOM JOKE ERROR:', error);
+      throw error;
+    }
+  }
 }
