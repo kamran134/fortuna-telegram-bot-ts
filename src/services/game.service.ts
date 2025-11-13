@@ -384,7 +384,7 @@ export class GameService {
 
       // Add guest user
       const result = await this.userRepository.addUser({
-        user_id: 0, // Guest doesn't have telegram ID
+        user_id: Math.random(), // Guest doesn't have telegram ID
         first_name: firstName,
         last_name: lastName,
         chat_id: chatId,
