@@ -382,29 +382,16 @@ export class GameService {
       const firstName = names[0];
       const lastName = names.slice(1).join(' ') || '';
 
-      // Add guest user
-      const result = await this.userRepository.addUser({
-        user_id: Math.random(), // Guest doesn't have telegram ID
-        first_name: firstName,
-        last_name: lastName,
-        chat_id: chatId,
-        is_guest: true,
-      });
+      // Add guest user (uses MAX(id) + 1 for user_id to avoid conflicts)
+      const guestId = await this.userRepository.addGuest(chatId, firstName, lastName);
 
-      if (result === Messages.USER_ALREADY_IN_GROUP) {
-        await bot.sendMessage(chatId, 'Гость с таким именем уже существует');
-        return;
-      }
-
-      // Get the guest user
-      const guest = await this.userRepository.getUserByName(chatId, firstName, lastName);
-      if (!guest) {
+      if (!guestId) {
         await bot.sendMessage(chatId, 'Не удалось добавить гостя');
         return;
       }
 
       // Add guest to game
-      await this.gamePlayerRepository.addGamePlayerByLabel(chatId, gameLabel, guest.id, confirmedAttendance);
+      await this.gamePlayerRepository.addGamePlayerByLabel(chatId, gameLabel, guestId, confirmedAttendance);
 
       const declinedLabel = declineRussian(gameLabel, 'винительный');
       const certainty = confirmedAttendance ? '' : ' Но это не точно :(';
