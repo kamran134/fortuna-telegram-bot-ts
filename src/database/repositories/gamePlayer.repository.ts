@@ -57,6 +57,47 @@ export class GamePlayerRepository {
   }
 
   /**
+   * Get undecided players for a specific game by label
+   */
+  async getUndecidedPlayersByGameLabel(chatId: number, gameLabel: string): Promise<GamePlayerDetails[]> {
+    try {
+      const result = await this.pool.query<GamePlayerDetails>(
+        `SELECT 
+          gu.game_id, gu.user_id, gu.confirmed_attendance,
+          u.id as user_db_id, u.first_name, u.last_name, u.username, u.is_guest,
+          g.game_date, g.game_starts, g.game_ends, g.place, g.label, g.users_limit
+         FROM game_users gu
+         LEFT JOIN users u ON gu.user_id = u.id
+         LEFT JOIN games g ON gu.game_id = g.id
+         WHERE g.chat_id = $1 AND g.status = TRUE AND gu.confirmed_attendance = FALSE 
+         AND LOWER(g.label) = LOWER($2)
+         ORDER BY gu.participate_time`,
+        [chatId, gameLabel]
+      );
+      return result.rows;
+    } catch (error) {
+      console.error('GET UNDECIDED PLAYERS BY GAME LABEL ERROR:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Confirm player attendance (set confirmed_attendance to true)
+   */
+  async confirmPlayerAttendance(gameId: number, userDbId: number): Promise<boolean> {
+    try {
+      const result = await this.pool.query(
+        'UPDATE game_users SET confirmed_attendance = TRUE WHERE game_id = $1 AND user_id = $2',
+        [gameId, userDbId]
+      );
+      return (result.rowCount || 0) > 0;
+    } catch (error) {
+      console.error('CONFIRM PLAYER ATTENDANCE ERROR:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Add player to game by game ID
    */
   async addGamePlayerById(dto: CreateGamePlayerDto & { chatId: number }): Promise<string | null> {

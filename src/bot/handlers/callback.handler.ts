@@ -65,6 +65,8 @@ export class CallbackHandler {
         await this.handleSelectedGroupTagGamers(query);
       } else if (data.startsWith('showPrivate_')) {
         await this.handleShowPrivate(query, user.id, user.username);
+      } else if (data.startsWith('confirmplayer_')) {
+        await this.handleConfirmPlayer(query, chatId);
       } else if (data === 'showgames') {
         await this.handleShowGamesCallback(query, chatId);
       } else if (data === 'list') {
@@ -201,6 +203,42 @@ export class CallbackHandler {
 
     if (label) {
       await this.bot.sendMessage(chatId, `Игра на ${declineRussian(label, 'винительный')} закрыта!`);
+    }
+  }
+
+  private async handleConfirmPlayer(query: CallbackQuery, chatId: number): Promise<void> {
+    // callback_data format: confirmplayer_gameId_userDbId
+    const parts = query.data?.split('_') || [];
+    const gameId = parseInt(parts[1] || '0');
+    const userDbId = parseInt(parts[2] || '0');
+
+    if (!gameId || !userDbId) {
+      await this.bot.answerCallbackQuery(query.id, { text: 'Ошибка: неверные данные' });
+      return;
+    }
+
+    const confirmed = await this.gamePlayerRepository.confirmPlayerAttendance(gameId, userDbId);
+
+    if (confirmed) {
+      await this.bot.answerCallbackQuery(query.id, { text: '✅ Игрок подтверждён!' });
+      
+      // Update the message to show it's confirmed
+      if (query.message) {
+        const messageText = query.message.text || '';
+        const updatedText = messageText + '\n\n✅ Подтверждено!';
+        
+        try {
+          await this.bot.editMessageText(updatedText, {
+            chat_id: chatId,
+            message_id: query.message.message_id,
+          });
+        } catch {
+          // Message might be too old to edit, just send a new message
+          await this.bot.sendMessage(chatId, '✅ Игрок подтверждён!');
+        }
+      }
+    } else {
+      await this.bot.answerCallbackQuery(query.id, { text: '❌ Игрок не найден или уже подтверждён' });
     }
   }
 

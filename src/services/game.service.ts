@@ -431,4 +431,76 @@ export class GameService {
       }
     }
   }
+
+  /**
+   * Show undecided players for a game with confirmation buttons
+   */
+  async showUndecidedPlayersForConfirmation(
+    chatId: number,
+    gameLabel: string,
+    bot: TelegramBot,
+    messageThreadId?: number
+  ): Promise<void> {
+    try {
+      const undecidedPlayers = await this.gamePlayerRepository.getUndecidedPlayersByGameLabel(chatId, gameLabel);
+
+      if (!undecidedPlayers || undecidedPlayers.length === 0) {
+        await bot.sendMessage(
+          chatId,
+          `На игру в ${declineRussian(gameLabel, 'винительный')} нет неопределившихся игроков`,
+          messageThreadId ? { message_thread_id: messageThreadId } : {}
+        );
+        return;
+      }
+
+      const buttons = undecidedPlayers.map((player, index) => {
+        const name = `${player.first_name} ${player.last_name || ''}`.trim();
+        const guestLabel = player.is_guest ? ' (гость)' : '';
+        // Callback format: confirmplayer_gameId_userDbId
+        return [{
+          text: `✅ ${index + 1}. ${name}${guestLabel}`,
+          callback_data: `confirmplayer_${player.game_id}_${player.user_db_id || 0}`
+        }];
+      });
+
+      const message = 
+        `Неопределившиеся игроки на ${declineRussian(gameLabel, 'винительный')}:\n\n` +
+        undecidedPlayers.map((p, i) => {
+          const name = `${p.first_name} ${p.last_name || ''}`.trim();
+          const guestLabel = p.is_guest ? ' (гость)' : '';
+          return `${i + 1}. ${name}${guestLabel}`;
+        }).join('\n') +
+        '\n\nНажмите на кнопку, чтобы подтвердить игрока:';
+
+      await bot.sendMessage(chatId, message, {
+        reply_markup: { inline_keyboard: buttons },
+        ...(messageThreadId ? { message_thread_id: messageThreadId } : {}),
+      });
+    } catch (error) {
+      console.error('SHOW UNDECIDED PLAYERS FOR CONFIRMATION ERROR:', error);
+      await bot.sendMessage(
+        chatId,
+        Messages.ERROR_OCCURRED,
+        messageThreadId ? { message_thread_id: messageThreadId } : {}
+      );
+    }
+  }
+
+  /**
+   * Confirm player attendance
+   */
+  async confirmPlayer(gameId: number, userDbId: number): Promise<string> {
+    try {
+      const confirmed = await this.gamePlayerRepository.confirmPlayerAttendance(gameId, userDbId);
+
+      if (confirmed) {
+        return '✅ Игрок подтверждён!';
+      } else {
+        return '❌ Игрок не найден или уже подтверждён';
+      }
+    } catch (error) {
+      console.error('CONFIRM PLAYER ERROR:', error);
+      return Messages.ERROR_OCCURRED;
+    }
+  }
 }

@@ -41,6 +41,7 @@ export interface CreateGamePlayerDto {
 export interface GamePlayerDetails {
   game_id: number;
   user_id: number;
+  user_db_id?: number; // Database ID of the user (from users table)
   first_name: string;
   last_name?: string;
   username?: string;

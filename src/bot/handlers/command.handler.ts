@@ -101,6 +101,11 @@ export class CommandHandler {
       } else if (messageText === '/tagundecided' && !isAdmin) {
         await this.bot.sendMessage(chatId, 'Только одмэн может пошевелить всех!',
           messageThreadId ? { message_thread_id: messageThreadId } : {});
+      } else if (messageText.startsWith('/confirmguest') && isAdmin) {
+        await this.handleConfirmGuest(msg, messageThreadId);
+      } else if (messageText.startsWith('/confirmguest') && !isAdmin) {
+        await this.bot.sendMessage(chatId, 'Только одмэн может подтверждать игроков!',
+          messageThreadId ? { message_thread_id: messageThreadId } : {});
       } else if (messageText === 'приффки' && user) {
         await this.bot.sendMessage(chatId, `ПрИфФкИ, ${user.first_name}. КаК дЕлИфФкИ. (Что за ванилька из начала нулевых?)`,
           messageThreadId ? { message_thread_id: messageThreadId } : {});
@@ -324,6 +329,23 @@ export class CommandHandler {
 
   private async handleTagUndecided(chatId: number, messageThreadId?: number): Promise<void> {
     await this.gameService.tagUndecidedPlayers(chatId, this.bot, messageThreadId);
+  }
+
+  private async handleConfirmGuest(msg: Message, messageThreadId?: number): Promise<void> {
+    const chatId = msg.chat.id;
+    const messageText = msg.text?.toLowerCase().replace('@fortunavolleybalbot', '') || '';
+    const gameLabel = messageText.replace('/confirmguest ', '').trim();
+
+    if (!gameLabel || gameLabel === '/confirmguest') {
+      await this.bot.sendMessage(
+        chatId,
+        'Формат команды: /confirmguest название_игры\n\nНапример: /confirmguest среда',
+        messageThreadId ? { message_thread_id: messageThreadId } : {}
+      );
+      return;
+    }
+
+    await this.gameService.showUndecidedPlayersForConfirmation(chatId, gameLabel, this.bot, messageThreadId);
   }
 
   private async handleAddJoke(msg: Message, userId: number): Promise<void> {
