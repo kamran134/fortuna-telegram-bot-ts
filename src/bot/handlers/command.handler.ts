@@ -14,7 +14,7 @@ import { GameService } from '../../services/game.service';
 import { AdminGroupService } from '../../services/adminGroup.service';
 import { validateGameFormat, parseGameCommand } from '../../utils/validator';
 import { Messages } from '../../constants/messages';
-import { botConfig } from '../../config/bot';
+import { botConfig, GAMES_TOPIC_ID } from '../../config/bot';
 
 export class CommandHandler {
   private userService: UserService;
@@ -46,6 +46,7 @@ export class CommandHandler {
     const chatId = msg.chat.id;
     const userId = msg.from?.id;
     const user = msg.from;
+    const messageThreadId = msg.message_thread_id; // Get thread ID for topic support
     
     if (!userId || !user) return;
 
@@ -60,45 +61,49 @@ export class CommandHandler {
     // Handle commands
     try {
       if (messageText === '/register') {
-        await this.handleRegister(chatId, user);
+        await this.handleRegister(chatId, user, messageThreadId);
       } else if (messageText === '/menu') {
-        await this.handleMenu(chatId);
+        await this.handleMenu(chatId, messageThreadId);
       } else if (messageText === '/tagregistered') {
-        await this.handleTagRegistered(chatId, isAdmin);
+        await this.handleTagRegistered(chatId, isAdmin, messageThreadId);
       } else if (messageText === '/showregistered') {
-        await this.handleShowRegistered(chatId, isAdmin);
+        await this.handleShowRegistered(chatId, isAdmin, messageThreadId);
       } else if (messageText.startsWith('/startgame')) {
         await this.handleStartGame(msg, isAdmin);
       } else if (messageText === '/showgames') {
-        await this.handleShowGames(chatId);
+        await this.handleShowGames(chatId, messageThreadId);
       } else if (messageText === '/deactivegame') {
-        await this.handleDeactiveGames(chatId, isAdmin);
+        await this.handleDeactiveGames(chatId, isAdmin, messageThreadId);
       } else if (messageText === '/list') {
-        await this.handleList(chatId);
+        await this.handleList(chatId, messageThreadId);
       } else if (messageText.startsWith('/addguest') && isAdmin) {
         await this.handleAddGuest(msg);
       } else if (messageText.startsWith('/addguest') && !isAdmin) {
-        await this.bot.sendMessage(chatId, 'Только одмэн может добавлять гостя в игру. Обратитесь к одмэну.');
+        await this.bot.sendMessage(chatId, 'Только одмэн может добавлять гостя в игру. Обратитесь к одмэну.',
+          messageThreadId ? { message_thread_id: messageThreadId } : {});
       } else if (messageText.startsWith('/changelimit') && isAdmin) {
         await this.handleChangeLimit(msg);
       } else if (messageText.startsWith('/changelimit') && !isAdmin) {
-        await this.bot.sendMessage(chatId, 'Я, конечно, всё понимаю, ну кроме квантовой физики и степени твоей наглости 🤨');
+        await this.bot.sendMessage(chatId, 'Я, конечно, всё понимаю, ну кроме квантовой физики и степени твоей наглости 🤨',
+          messageThreadId ? { message_thread_id: messageThreadId } : {});
       } else if (messageText === '/agilliol' || messageText === '/ağıllı ol') {
-        await this.handleAgilliOl(chatId);
+        await this.handleAgilliOl(chatId, messageThreadId);
       } else if (messageText === '/taggamers') {
-        await this.handleTagGamers(chatId, isAdmin);
+        await this.handleTagGamers(chatId, isAdmin, messageThreadId);
       } else if (messageText === '/getgroupid' && isAdmin) {
         await this.bot.sendMessage(userId, `ID вашей группы ${chatId}`);
       } else if (messageText.includes('во ск')) {
-        await this.handleWhatTime(chatId);
+        await this.handleWhatTime(chatId, messageThreadId);
       } else if (messageText.startsWith('/adminedituser')) {
         await this.handleEditUser(msg, isAdmin);
       } else if (messageText === '/tagundecided' && isAdmin) {
-        await this.handleTagUndecided(chatId);
+        await this.handleTagUndecided(chatId, messageThreadId);
       } else if (messageText === '/tagundecided' && !isAdmin) {
-        await this.bot.sendMessage(chatId, 'Только одмэн может пошевелить всех!');
+        await this.bot.sendMessage(chatId, 'Только одмэн может пошевелить всех!',
+          messageThreadId ? { message_thread_id: messageThreadId } : {});
       } else if (messageText === 'приффки' && user) {
-        await this.bot.sendMessage(chatId, `ПрИфФкИ, ${user.first_name}. КаК дЕлИфФкИ. (Что за ванилька из начала нулевых?)`);
+        await this.bot.sendMessage(chatId, `ПрИфФкИ, ${user.first_name}. КаК дЕлИфФкИ. (Что за ванилька из начала нулевых?)`,
+          messageThreadId ? { message_thread_id: messageThreadId } : {});
       } else if (messageText === 'привет' && user) {
         await this.bot.sendMessage(chatId, `Привет, ${user.first_name}. Играть будем?`);
       } else if (messageText === 'пока' && user) {
@@ -143,7 +148,7 @@ export class CommandHandler {
     }
   }
 
-  private async handleRegister(chatId: number, user: TelegramBot.User): Promise<void> {
+  private async handleRegister(chatId: number, user: TelegramBot.User, messageThreadId?: number): Promise<void> {
     const result = await this.userService.registerUser({
       user_id: user.id,
       first_name: user.first_name,
@@ -151,10 +156,11 @@ export class CommandHandler {
       username: user.username,
       chat_id: chatId,
     });
-    await this.bot.sendMessage(chatId, result);
+    await this.bot.sendMessage(chatId, result,
+      messageThreadId ? { message_thread_id: messageThreadId } : {});
   }
 
-  private async handleMenu(chatId: number): Promise<void> {
+  private async handleMenu(chatId: number, messageThreadId?: number): Promise<void> {
     const keyboard = {
       inline_keyboard: [
         [{ text: '📋 Показать игры', callback_data: 'showgames' }],
@@ -163,17 +169,26 @@ export class CommandHandler {
         [{ text: '🧠 Ağıllı ol', callback_data: 'agilliol' }],
       ],
     };
-    await this.bot.sendMessage(chatId, '📱 Главное меню:', { reply_markup: keyboard });
+    await this.bot.sendMessage(chatId, '📱 Главное меню:', { 
+      reply_markup: keyboard,
+      ...(messageThreadId ? { message_thread_id: messageThreadId } : {}),
+    });
   }
 
-  private async handleTagRegistered(chatId: number, isAdmin: boolean): Promise<void> {
+  private async handleTagRegistered(chatId: number, isAdmin: boolean, messageThreadId?: number): Promise<void> {
     const result = await this.userService.getRegisteredUsers(chatId, 'tag', isAdmin);
-    await this.bot.sendMessage(chatId, result, { parse_mode: 'HTML' });
+    await this.bot.sendMessage(chatId, result, { 
+      parse_mode: 'HTML',
+      ...(messageThreadId ? { message_thread_id: messageThreadId } : {}),
+    });
   }
 
-  private async handleShowRegistered(chatId: number, isAdmin: boolean): Promise<void> {
+  private async handleShowRegistered(chatId: number, isAdmin: boolean, messageThreadId?: number): Promise<void> {
     const result = await this.userService.getRegisteredUsers(chatId, 'show', isAdmin);
-    await this.bot.sendMessage(chatId, result, { parse_mode: 'HTML' });
+    await this.bot.sendMessage(chatId, result, { 
+      parse_mode: 'HTML',
+      ...(messageThreadId ? { message_thread_id: messageThreadId } : {}),
+    });
   }
 
   private async handleStartGame(msg: Message, isAdmin: boolean): Promise<void> {
@@ -200,7 +215,8 @@ export class CommandHandler {
       const g = global as typeof globalThis & { selectedChatForStartGame?: Record<number, number> };
       const targetChatId = g.selectedChatForStartGame?.[chatId] || chatId;
       
-      await this.gameService.createGame(targetChatId, { ...gameData, chat_id: targetChatId }, this.bot);
+      // Always post game announcements to the games topic
+      await this.gameService.createGame(targetChatId, { ...gameData, chat_id: targetChatId }, this.bot, GAMES_TOPIC_ID);
       
       // Clear selected chat after game creation
       if (g.selectedChatForStartGame?.[chatId]) {
@@ -209,16 +225,16 @@ export class CommandHandler {
     }
   }
 
-  private async handleShowGames(chatId: number): Promise<void> {
-    await this.gameService.showGames(chatId, this.bot);
+  private async handleShowGames(chatId: number, messageThreadId?: number): Promise<void> {
+    await this.gameService.showGames(chatId, this.bot, messageThreadId);
   }
 
-  private async handleDeactiveGames(chatId: number, isAdmin: boolean): Promise<void> {
-    await this.gameService.deactivateGames(chatId, isAdmin, this.bot);
+  private async handleDeactiveGames(chatId: number, isAdmin: boolean, messageThreadId?: number): Promise<void> {
+    await this.gameService.deactivateGames(chatId, isAdmin, this.bot, messageThreadId);
   }
 
-  private async handleList(chatId: number): Promise<void> {
-    await this.gameService.showGamePlayers(chatId, this.bot);
+  private async handleList(chatId: number, messageThreadId?: number): Promise<void> {
+    await this.gameService.showGamePlayers(chatId, this.bot, messageThreadId);
   }
 
   private async handleAddGuest(msg: Message): Promise<void> {
@@ -259,18 +275,24 @@ export class CommandHandler {
     await this.gameService.changeGameLimit(chatId, label, limit, this.bot);
   }
 
-  private async handleAgilliOl(chatId: number): Promise<void> {
+  private async handleAgilliOl(chatId: number, messageThreadId?: number): Promise<void> {
     const result = await this.userService.getRandomUserMessage(chatId);
-    await this.bot.sendMessage(chatId, result, { parse_mode: 'HTML' });
+    await this.bot.sendMessage(chatId, result, { 
+      parse_mode: 'HTML',
+      ...(messageThreadId ? { message_thread_id: messageThreadId } : {}),
+    });
   }
 
-  private async handleTagGamers(chatId: number, isAdmin: boolean): Promise<void> {
+  private async handleTagGamers(chatId: number, isAdmin: boolean, messageThreadId?: number): Promise<void> {
     const result = await this.gameService.tagGamePlayers(chatId, isAdmin);
-    await this.bot.sendMessage(chatId, result, { parse_mode: 'HTML' });
+    await this.bot.sendMessage(chatId, result, { 
+      parse_mode: 'HTML',
+      ...(messageThreadId ? { message_thread_id: messageThreadId } : {}),
+    });
   }
 
-  private async handleWhatTime(chatId: number): Promise<void> {
-    await this.gameService.showGamesTimes(chatId, this.bot);
+  private async handleWhatTime(chatId: number, messageThreadId?: number): Promise<void> {
+    await this.gameService.showGamesTimes(chatId, this.bot, messageThreadId);
   }
 
   private async handleEditUser(msg: Message, isAdmin: boolean): Promise<void> {
@@ -300,8 +322,8 @@ export class CommandHandler {
     await this.bot.sendMessage(chatId, result);
   }
 
-  private async handleTagUndecided(chatId: number): Promise<void> {
-    await this.gameService.tagUndecidedPlayers(chatId, this.bot);
+  private async handleTagUndecided(chatId: number, messageThreadId?: number): Promise<void> {
+    await this.gameService.tagUndecidedPlayers(chatId, this.bot, messageThreadId);
   }
 
   private async handleAddJoke(msg: Message, userId: number): Promise<void> {
