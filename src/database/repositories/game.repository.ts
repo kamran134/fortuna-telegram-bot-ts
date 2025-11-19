@@ -5,6 +5,7 @@
 import { Pool } from 'pg';
 import moment from 'moment';
 import { Game, CreateGameDto, ChangeGameLimitDto } from '../../types/game.types';
+import { logger } from '../../utils/logger';
 
 export class GameRepository {
   constructor(private pool: Pool) {}
@@ -20,7 +21,7 @@ export class GameRepository {
       );
       return result.rows;
     } catch (error) {
-      console.error('GET GAMES ERROR:', error);
+      logger.error('GET GAMES ERROR:', error);
       throw error;
     }
   }
@@ -36,7 +37,7 @@ export class GameRepository {
       );
       return result.rows;
     } catch (error) {
-      console.error('GET GAMES TIMES ERROR:', error);
+      logger.error('GET GAMES TIMES ERROR:', error);
       throw error;
     }
   }
@@ -64,7 +65,7 @@ export class GameRepository {
 
       return result.rows[0]?.id;
     } catch (error) {
-      console.error('ADD GAME ERROR:', error);
+      logger.error('ADD GAME ERROR:', error);
       throw error;
     }
   }
@@ -82,7 +83,7 @@ export class GameRepository {
       );
       return result.rows[0]?.label || null;
     } catch (error) {
-      console.error('DEACTIVATE GAME ERROR:', error);
+      logger.error('DEACTIVATE GAME ERROR:', error);
       throw error;
     } finally {
       client.release();
@@ -107,7 +108,7 @@ export class GameRepository {
 
       return result.rows[0]?.label || null;
     } catch (error) {
-      console.error('DELETE GAME ERROR:', error);
+      logger.error('DELETE GAME ERROR:', error);
       throw error;
     } finally {
       client.release();
@@ -128,7 +129,7 @@ export class GameRepository {
       );
       return result.rows[0]?.label || null;
     } catch (error) {
-      console.error('CHANGE GAME LIMIT ERROR:', error);
+      logger.error('CHANGE GAME LIMIT ERROR:', error);
       throw error;
     } finally {
       client.release();
@@ -148,7 +149,7 @@ export class GameRepository {
       );
       return result.rows[0]?.status || false;
     } catch (error) {
-      console.error('CHECK GAME STATUS ERROR:', error);
+      logger.error('CHECK GAME STATUS ERROR:', error);
       throw error;
     } finally {
       client.release();
@@ -166,7 +167,7 @@ export class GameRepository {
       );
       return result.rows[0] || null;
     } catch (error) {
-      console.error('GET GAME BY ID ERROR:', error);
+      logger.error('GET GAME BY ID ERROR:', error);
       throw error;
     }
   }

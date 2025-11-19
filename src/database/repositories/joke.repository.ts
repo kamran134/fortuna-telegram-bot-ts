@@ -4,6 +4,7 @@
 
 import { Pool } from 'pg';
 import { Joke, CreateJokeDto, UpdateJokeDto, JokeType } from '../../types/admin.types';
+import { logger } from '../../utils/logger';
 
 export class JokeRepository {
   constructor(private pool: Pool) {}
@@ -19,7 +20,7 @@ export class JokeRepository {
       );
       return result.rows[0]?.joke || '';
     } catch (error) {
-      console.error('GET JOKE ERROR:', error);
+      logger.error('GET JOKE ERROR:', error);
       throw error;
     }
   }
@@ -35,7 +36,7 @@ export class JokeRepository {
       );
       return result.rows;
     } catch (error) {
-      console.error('GET JOKES ERROR:', error);
+      logger.error('GET JOKES ERROR:', error);
       throw error;
     }
   }
@@ -52,7 +53,7 @@ export class JokeRepository {
         [joke, type]
       );
     } catch (error) {
-      console.error('ADD JOKE ERROR:', error);
+      logger.error('ADD JOKE ERROR:', error);
       throw error;
     }
   }
@@ -69,7 +70,7 @@ export class JokeRepository {
         [joke, type, id]
       );
     } catch (error) {
-      console.error('UPDATE JOKE ERROR:', error);
+      logger.error('UPDATE JOKE ERROR:', error);
       throw error;
     }
   }
@@ -81,7 +82,7 @@ export class JokeRepository {
     try {
       await this.pool.query('DELETE FROM jokes WHERE id = $1', [jokeId]);
     } catch (error) {
-      console.error('DELETE JOKE ERROR:', error);
+      logger.error('DELETE JOKE ERROR:', error);
       throw error;
     }
   }
@@ -97,7 +98,7 @@ export class JokeRepository {
       );
       return result.rows[0] || null;
     } catch (error) {
-      console.error('GET RANDOM JOKE ERROR:', error);
+      logger.error('GET RANDOM JOKE ERROR:', error);
       throw error;
     }
   }

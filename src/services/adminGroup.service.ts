@@ -4,6 +4,7 @@
 
 import TelegramBot from 'node-telegram-bot-api';
 import { AdminGroupRepository } from '../database/repositories/adminGroup.repository';
+import { logger } from '../utils/logger';
 
 export class AdminGroupService {
   constructor(private adminGroupRepository: AdminGroupRepository) {}
@@ -33,7 +34,7 @@ export class AdminGroupService {
         `Группа ${groupName} успешно связана с текущей. Теперь вы можете создавать игры, редактировать пользователей и игры отсюда!`
       );
     } catch (error) {
-      console.error('CONNECT TO GROUP ERROR:', error);
+      logger.error('CONNECT TO GROUP ERROR:', error);
       await bot.sendMessage(adminChatId, 'Произошла ошибка при подключении группы');
     }
   }
@@ -53,7 +54,7 @@ export class AdminGroupService {
       const groupsList = groups.map(g => g.group_name).join('\n');
       await bot.sendMessage(adminChatId, `Группы, которые вы админите:\n\n${groupsList}`);
     } catch (error) {
-      console.error('SHOW GROUPS ERROR:', error);
+      logger.error('SHOW GROUPS ERROR:', error);
       await bot.sendMessage(adminChatId, 'Произошла ошибка при получении списка групп');
     }
   }
@@ -80,7 +81,7 @@ export class AdminGroupService {
         }
       });
     } catch (error) {
-      console.error('SHOW GROUPS FOR SELECTION ERROR:', error);
+      logger.error('SHOW GROUPS FOR SELECTION ERROR:', error);
       await bot.sendMessage(adminChatId, 'Произошла ошибка');
     }
   }

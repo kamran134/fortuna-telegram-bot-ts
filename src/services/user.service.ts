@@ -8,6 +8,7 @@ import { CreateUserDto, UpdateUserDto } from '../types/user.types';
 import { JokeType } from '../types/admin.types';
 import { tagUsers, listUsers } from '../utils/formatter';
 import { Messages } from '../constants/messages';
+import { logger } from '../utils/logger';
 
 export class UserService {
   constructor(
@@ -22,7 +23,7 @@ export class UserService {
     try {
       return await this.userRepository.addUser(dto);
     } catch (error) {
-      console.error('USER SERVICE - REGISTER ERROR:', error);
+      logger.error('USER SERVICE - REGISTER ERROR:', error);
       return Messages.ERROR_OCCURRED;
     }
   }
@@ -50,7 +51,7 @@ export class UserService {
       const usersString = format === 'tag' ? tagUsers(users) : listUsers(users);
       return 'Qeydiyyatdan keçmiş iştirakçılar\nЗарегистрированные участники:\n\n' + usersString;
     } catch (error) {
-      console.error('USER SERVICE - GET REGISTERED ERROR:', error);
+      logger.error('USER SERVICE - GET REGISTERED ERROR:', error);
       return Messages.ERROR_OCCURRED;
     }
   }
@@ -71,7 +72,7 @@ export class UserService {
       }
       return `<a href="tg://user?id=${randomUser.user_id}">${randomUser.first_name}</a>, ağıllı ol! 🧠`;
     } catch (error) {
-      console.error('USER SERVICE - RANDOM USER ERROR:', error);
+      logger.error('USER SERVICE - RANDOM USER ERROR:', error);
       return Messages.ERROR_OCCURRED;
     }
   }
@@ -90,7 +91,7 @@ export class UserService {
       const usersString = tagUsers(users);
       return 'Значит так, \n\n' + usersString + '\n\nпочему не посещаем игры? Бот негодуэ 🤨';
     } catch (error) {
-      console.error('USER SERVICE - INACTIVE USERS ERROR:', error);
+      logger.error('USER SERVICE - INACTIVE USERS ERROR:', error);
       return Messages.ERROR_OCCURRED;
     }
   }
@@ -112,7 +113,7 @@ export class UserService {
         `Фамилия: ${user.last_name || ''}\n` +
         `На азербайджанском: ${user.fullname_az || ''}`;
     } catch (error) {
-      console.error('USER SERVICE - UPDATE ERROR:', error);
+      logger.error('USER SERVICE - UPDATE ERROR:', error);
       return Messages.ERROR_OCCURRED;
     }
   }

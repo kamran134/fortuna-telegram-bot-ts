@@ -2,7 +2,6 @@
  * Game service - business logic for game operations
  */
 
-import TelegramBot from 'node-telegram-bot-api';
 import moment from 'moment';
 import { GameRepository } from '../database/repositories/game.repository';
 import { GamePlayerRepository } from '../database/repositories/gamePlayer.repository';
@@ -13,33 +12,44 @@ import { JokeType } from '../types/admin.types';
 import { declineRussian, declineAzerbaijaniFull } from '../utils/declension';
 import { tagUsersByCommas } from '../utils/formatter';
 import { Messages } from '../constants/messages';
+import { logger } from '../utils/logger';
+import { BotMessenger } from './bot-messenger.service';
 
 export class GameService {
   constructor(
     private gameRepository: GameRepository,
     private gamePlayerRepository: GamePlayerRepository,
     private userRepository: UserRepository,
-    private jokeRepository: JokeRepository
+    private jokeRepository: JokeRepository,
+    private botMessenger: BotMessenger
   ) {}
 
   /**
    * Create a new game
    */
-  async createGame(chatId: number, gameData: CreateGameDto, bot: TelegramBot, messageThreadId?: number): Promise<void> {
+  async createGame(chatId: number, gameData: CreateGameDto, messageThreadId?: number): Promise<void> {
     try {
       const users = await this.userRepository.getUsers(chatId);
 
       if (!users || users.length === 0) {
-        await bot.sendMessage(chatId, 'Кажется у нас нет зарегистрированных игроков для игры :(', 
-          messageThreadId ? { message_thread_id: messageThreadId } : {});
+        await this.botMessenger.sendMessage(
+          chatId, 
+          'Кажется у нас нет зарегистрированных игроков для игры :(',
+          {},
+          messageThreadId
+        );
         return;
       }
 
       const gameId = await this.gameRepository.addGame(chatId, gameData);
 
       if (!gameId) {
-        await bot.sendMessage(chatId, 'Что-то пошло не так и игра не создалась',
-          messageThreadId ? { message_thread_id: messageThreadId } : {});
+        await this.botMessenger.sendMessage(
+          chatId,
+          'Что-то пошло не так и игра не создалась',
+          {},
+          messageThreadId
+        );
         return;
       }
 
@@ -62,11 +72,13 @@ export class GameService {
         ],
       };
 
-      await bot.sendMessage(chatId, gameMessage, {
-        parse_mode: 'HTML',
-        reply_markup: keyboard,
-        ...(messageThreadId ? { message_thread_id: messageThreadId } : {}),
-      });
+      await this.botMessenger.sendMessageWithKeyboard(
+        chatId,
+        gameMessage,
+        keyboard,
+        { parse_mode: 'HTML' },
+        messageThreadId
+      );
 
       // Send private messages to all users
       for (const user of users) {
@@ -79,37 +91,36 @@ export class GameService {
             ],
           };
 
-          await bot.sendMessage(
+          await this.botMessenger.sendMessageWithKeyboard(
             user.user_id,
             `📢 ${gameDayAz.charAt(0).toUpperCase() + gameDayAz.slice(1)} oyun elan edildi!\n` +
               `📢 Объявлена игра на ${gameDayRu}!\n` +
               `🗓 Tarix / Дата: ${gameData.date}\n` +
               `⏳ Vaxt / Время: ${gameData.start} — ${gameData.end}.\n` +
               `📍 Məkan / Место: ${gameData.location}`,
-            { parse_mode: 'HTML', reply_markup: privateKeyboard }
+            privateKeyboard,
+            { parse_mode: 'HTML' }
           );
         } catch (error) {
           // User might have blocked the bot
-          console.error(`Failed to send message to user ${user.user_id}:`, error);
+          logger.error(`Failed to send message to user ${user.user_id}:`, error);
         }
       }
     } catch (error) {
-      console.error('GAME SERVICE - CREATE GAME ERROR:', error);
-      await bot.sendMessage(chatId, Messages.ERROR_OCCURRED,
-        messageThreadId ? { message_thread_id: messageThreadId } : {});
+      logger.error('GAME SERVICE - CREATE GAME ERROR', error);
+      await this.botMessenger.sendMessage(chatId, Messages.ERROR_OCCURRED, {}, messageThreadId);
     }
   }
 
   /**
    * Show all active games
    */
-  async showGames(chatId: number, bot: TelegramBot, messageThreadId?: number): Promise<void> {
+  async showGames(chatId: number, messageThreadId?: number): Promise<void> {
     try {
       const games = await this.gameRepository.getGames(chatId);
 
       if (!games || games.length === 0) {
-        await bot.sendMessage(chatId, Messages.NO_GAMES,
-          messageThreadId ? { message_thread_id: messageThreadId } : {});
+        await this.botMessenger.sendMessage(chatId, Messages.NO_GAMES, {}, messageThreadId);
         return;
       }
 
@@ -129,27 +140,28 @@ export class GameService {
         )
         .join('\n----------------------------------\n');
 
-      await bot.sendMessage(chatId, gamesString, {
-        reply_markup: { inline_keyboard: gameButtons },
-        ...(messageThreadId ? { message_thread_id: messageThreadId } : {}),
-      });
+      await this.botMessenger.sendMessageWithKeyboard(
+        chatId,
+        gamesString,
+        { inline_keyboard: gameButtons },
+        {},
+        messageThreadId
+      );
     } catch (error) {
-      console.error('GAME SERVICE - SHOW GAMES ERROR:', error);
-      await bot.sendMessage(chatId, Messages.ERROR_OCCURRED,
-        messageThreadId ? { message_thread_id: messageThreadId } : {});
+      logger.error('GAME SERVICE - SHOW GAMES ERROR:', error);
+      await this.botMessenger.sendMessage(chatId, Messages.ERROR_OCCURRED, {}, messageThreadId);
     }
   }
 
   /**
    * Show game players
    */
-  async showGamePlayers(chatId: number, bot: TelegramBot, messageThreadId?: number): Promise<void> {
+  async showGamePlayers(chatId: number, messageThreadId?: number): Promise<void> {
     try {
       const gamePlayers = await this.gamePlayerRepository.getGamePlayers(chatId);
 
       if (!gamePlayers || gamePlayers.length === 0) {
-        await bot.sendMessage(chatId, Messages.NO_PLAYERS,
-          messageThreadId ? { message_thread_id: messageThreadId } : {});
+        await this.botMessenger.sendMessage(chatId, Messages.NO_PLAYERS, {}, messageThreadId);
         return;
       }
 
@@ -189,12 +201,15 @@ export class GameService {
         messages.push(message);
       }
 
-      await bot.sendMessage(chatId, messages.join('\n\n🔸🔸🔸🔸🔸🔸🔸🔸🔸🔸🔸\n\n'),
-        messageThreadId ? { message_thread_id: messageThreadId } : {});
+      await this.botMessenger.sendMessage(
+        chatId,
+        messages.join('\n\n🔸🔸🔸🔸🔸🔸🔸🔸🔸🔸🔸\n\n'),
+        {},
+        messageThreadId
+      );
     } catch (error) {
-      console.error('GAME SERVICE - SHOW GAME PLAYERS ERROR:', error);
-      await bot.sendMessage(chatId, Messages.ERROR_OCCURRED,
-        messageThreadId ? { message_thread_id: messageThreadId } : {});
+      logger.error('GAME SERVICE - SHOW GAME PLAYERS ERROR:', error);
+      await this.botMessenger.sendMessage(chatId, Messages.ERROR_OCCURRED, {}, messageThreadId);
     }
   }
 
@@ -221,7 +236,7 @@ export class GameService {
       const tagged = tagUsersByCommas(gamePlayers);
       return `${tagged}, у одмэна к вам дело, ща напишет. Не перебивайте!`;
     } catch (error) {
-      console.error('GAME SERVICE - TAG PLAYERS ERROR:', error);
+      logger.error('GAME SERVICE - TAG PLAYERS ERROR:', error);
       return Messages.ERROR_OCCURRED;
     }
   }
@@ -229,17 +244,22 @@ export class GameService {
   /**
    * Deactivate games
    */
-  async deactivateGames(chatId: number, isAdmin: boolean, bot: TelegramBot, messageThreadId?: number): Promise<void> {
+  async deactivateGames(chatId: number, isAdmin: boolean, messageThreadId?: number): Promise<void> {
     if (!isAdmin) {
       try {
         const joke = await this.jokeRepository.getJoke(JokeType.DEACTIVE_GAME);
-        await bot.sendMessage(chatId, `Только одмэн может закрыть игру. ${joke}`, { 
-          parse_mode: 'HTML',
-          ...(messageThreadId ? { message_thread_id: messageThreadId } : {}),
-        });
+        await this.botMessenger.sendHTMLMessage(
+          chatId,
+          `Только одмэн может закрыть игру. ${joke}`,
+          messageThreadId
+        );
       } catch {
-        await bot.sendMessage(chatId, 'Только одмэн может закрыть игру.',
-          messageThreadId ? { message_thread_id: messageThreadId } : {});
+        await this.botMessenger.sendMessage(
+          chatId,
+          'Только одмэн может закрыть игру.',
+          {},
+          messageThreadId
+        );
       }
       return;
     }
@@ -248,8 +268,12 @@ export class GameService {
       const games = await this.gameRepository.getGames(chatId);
 
       if (!games || games.length === 0) {
-        await bot.sendMessage(chatId, 'Ты не можешь деактивировать игру, если активных игр нет',
-          messageThreadId ? { message_thread_id: messageThreadId } : {});
+        await this.botMessenger.sendMessage(
+          chatId,
+          'Ты не можешь деактивировать игру, если активных игр нет',
+          {},
+          messageThreadId
+        );
         return;
       }
 
@@ -261,14 +285,16 @@ export class GameService {
         { text: `Закрыть игру на ${declineRussian(game.label, 'винительный')}`, callback_data: `deactivegame_${game.id}` },
       ]);
 
-      await bot.sendMessage(chatId, gamesString, {
-        reply_markup: { inline_keyboard: gameButtons },
-        ...(messageThreadId ? { message_thread_id: messageThreadId } : {}),
-      });
+      await this.botMessenger.sendMessageWithKeyboard(
+        chatId,
+        gamesString,
+        { inline_keyboard: gameButtons },
+        {},
+        messageThreadId
+      );
     } catch (error) {
-      console.error('GAME SERVICE - DEACTIVATE GAMES ERROR:', error);
-      await bot.sendMessage(chatId, Messages.ERROR_OCCURRED,
-        messageThreadId ? { message_thread_id: messageThreadId } : {});
+      logger.error('GAME SERVICE - DEACTIVATE GAMES ERROR:', error);
+      await this.botMessenger.sendMessage(chatId, Messages.ERROR_OCCURRED, {}, messageThreadId);
     }
   }
 
@@ -319,13 +345,12 @@ export class GameService {
   /**
    * Show games start times
    */
-  async showGamesTimes(chatId: number, bot: TelegramBot, messageThreadId?: number): Promise<void> {
+  async showGamesTimes(chatId: number, messageThreadId?: number): Promise<void> {
     try {
       const gamesTimes = await this.gameRepository.getGamesTimes(chatId);
 
       if (!gamesTimes || gamesTimes.length === 0) {
-        await bot.sendMessage(chatId, 'Нет активных игр',
-          messageThreadId ? { message_thread_id: messageThreadId } : {});
+        await this.botMessenger.sendMessage(chatId, 'Нет активных игр', {}, messageThreadId);
         return;
       }
 
@@ -333,10 +358,14 @@ export class GameService {
         .map(game => `${game.label}: ${moment(game.game_starts, 'HH:mm:ss').format('HH:mm')}`)
         .join(', ');
 
-      await bot.sendMessage(chatId, `Мэээх. Сколько можно спрашивать? 😒\n${timesString}`,
-        messageThreadId ? { message_thread_id: messageThreadId } : {});
+      await this.botMessenger.sendMessage(
+        chatId,
+        `Мэээх. Сколько можно спрашивать? 😒\n${timesString}`,
+        {},
+        messageThreadId
+      );
     } catch (error) {
-      console.error('SHOW GAMES TIMES ERROR:', error);
+      logger.error('SHOW GAMES TIMES ERROR:', error);
       throw error;
     }
   }
@@ -344,13 +373,12 @@ export class GameService {
   /**
    * Tag undecided players
    */
-  async tagUndecidedPlayers(chatId: number, bot: TelegramBot, messageThreadId?: number): Promise<void> {
+  async tagUndecidedPlayers(chatId: number, messageThreadId?: number): Promise<void> {
     try {
       const players = await this.gamePlayerRepository.getUndecidedPlayers(chatId);
 
       if (!players || players.length === 0) {
-        await bot.sendMessage(chatId, 'Нет неопределившихся игроков',
-          messageThreadId ? { message_thread_id: messageThreadId } : {});
+        await this.botMessenger.sendMessage(chatId, 'Нет неопределившихся игроков', {}, messageThreadId);
         return;
       }
 
@@ -361,12 +389,9 @@ export class GameService {
       const taggedPlayers = tagUsersByCommas(uniquePlayers);
       const message = `${taggedPlayers}, ну шо, товарищи? Пришло время определиться! Играть будем или нет?`;
 
-      await bot.sendMessage(chatId, message, { 
-        parse_mode: 'HTML',
-        ...(messageThreadId ? { message_thread_id: messageThreadId } : {}),
-      });
+      await this.botMessenger.sendHTMLMessage(chatId, message, messageThreadId);
     } catch (error) {
-      console.error('TAG UNDECIDED PLAYERS ERROR:', error);
+      logger.error('TAG UNDECIDED PLAYERS ERROR:', error);
       throw error;
     }
   }
@@ -374,18 +399,21 @@ export class GameService {
   /**
    * Change game limit
    */
-  async changeGameLimit(chatId: number, label: string, newLimit: number, bot: TelegramBot): Promise<void> {
+  async changeGameLimit(chatId: number, label: string, newLimit: number): Promise<void> {
     try {
       const updatedLabel = await this.gameRepository.changeGameLimit({ chatId, label, limit: newLimit });
 
       if (updatedLabel) {
         const declinedLabel = declineRussian(updatedLabel, 'винительный');
-        await bot.sendMessage(chatId, `Изменено количество игроков на игру в ${declinedLabel}!`);
+        await this.botMessenger.sendMessage(
+          chatId,
+          `Изменено количество игроков на игру в ${declinedLabel}!`
+        );
       } else {
-        await bot.sendMessage(chatId, 'Кажется, такой игры больше нет');
+        await this.botMessenger.sendMessage(chatId, 'Кажется, такой игры больше нет');
       }
     } catch (error) {
-      console.error('CHANGE GAME LIMIT ERROR:', error);
+      logger.error('CHANGE GAME LIMIT ERROR:', error);
       throw error;
     }
   }
@@ -397,8 +425,7 @@ export class GameService {
     chatId: number,
     gameLabel: string,
     fullname: string,
-    confirmedAttendance: boolean,
-    bot: TelegramBot
+    confirmedAttendance: boolean
   ): Promise<void> {
     try {
       const names = fullname.split(' ');
@@ -409,7 +436,7 @@ export class GameService {
       const guestId = await this.userRepository.addGuest(chatId, firstName, lastName);
 
       if (!guestId) {
-        await bot.sendMessage(chatId, 'Не удалось добавить гостя');
+        await this.botMessenger.sendMessage(chatId, 'Не удалось добавить гостя');
         return;
       }
 
@@ -418,16 +445,16 @@ export class GameService {
 
       const declinedLabel = declineRussian(gameLabel, 'винительный');
       const certainty = confirmedAttendance ? '' : ' Но это не точно :(';
-      await bot.sendMessage(
+      await this.botMessenger.sendMessage(
         chatId,
         `Вы записали ${firstName} ${lastName} на ${declinedLabel}!${certainty}`
       );
     } catch (error) {
-      console.error('ADD GUEST ERROR:', error);
+      logger.error('ADD GUEST ERROR:', error);
       if (error instanceof Error && error.message === 'Game not found') {
-        await bot.sendMessage(chatId, 'Игра не найдена');
+        await this.botMessenger.sendMessage(chatId, 'Игра не найдена');
       } else {
-        await bot.sendMessage(chatId, 'Не удалось добавить гостя в игру');
+        await this.botMessenger.sendMessage(chatId, 'Не удалось добавить гостя в игру');
       }
     }
   }
@@ -438,17 +465,17 @@ export class GameService {
   async showUndecidedPlayersForConfirmation(
     chatId: number,
     gameLabel: string,
-    bot: TelegramBot,
     messageThreadId?: number
   ): Promise<void> {
     try {
       const undecidedPlayers = await this.gamePlayerRepository.getUndecidedPlayersByGameLabel(chatId, gameLabel);
 
       if (!undecidedPlayers || undecidedPlayers.length === 0) {
-        await bot.sendMessage(
+        await this.botMessenger.sendMessage(
           chatId,
           `На игру в ${declineRussian(gameLabel, 'винительный')} нет неопределившихся игроков`,
-          messageThreadId ? { message_thread_id: messageThreadId } : {}
+          {},
+          messageThreadId
         );
         return;
       }
@@ -472,16 +499,20 @@ export class GameService {
         }).join('\n') +
         '\n\nНажмите на кнопку, чтобы подтвердить игрока:';
 
-      await bot.sendMessage(chatId, message, {
-        reply_markup: { inline_keyboard: buttons },
-        ...(messageThreadId ? { message_thread_id: messageThreadId } : {}),
-      });
+      await this.botMessenger.sendMessageWithKeyboard(
+        chatId,
+        message,
+        { inline_keyboard: buttons },
+        {},
+        messageThreadId
+      );
     } catch (error) {
-      console.error('SHOW UNDECIDED PLAYERS FOR CONFIRMATION ERROR:', error);
-      await bot.sendMessage(
+      logger.error('SHOW UNDECIDED PLAYERS FOR CONFIRMATION ERROR:', error);
+      await this.botMessenger.sendMessage(
         chatId,
         Messages.ERROR_OCCURRED,
-        messageThreadId ? { message_thread_id: messageThreadId } : {}
+        {},
+        messageThreadId
       );
     }
   }
@@ -499,7 +530,7 @@ export class GameService {
         return '❌ Игрок не найден или уже подтверждён';
       }
     } catch (error) {
-      console.error('CONFIRM PLAYER ERROR:', error);
+      logger.error('CONFIRM PLAYER ERROR:', error);
       return Messages.ERROR_OCCURRED;
     }
   }

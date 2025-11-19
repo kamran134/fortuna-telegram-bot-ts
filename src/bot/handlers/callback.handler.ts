@@ -13,6 +13,7 @@ import { JokeType } from '../../types/admin.types';
 import { Game } from '../../types/game.types';
 import { User } from '../../types/user.types';
 import { declineRussian } from '../../utils/declension';
+import { logger } from '../../utils/logger';
 
 export class CallbackHandler {
   private gamePlayerRepository: GamePlayerRepository;
@@ -78,7 +79,7 @@ export class CallbackHandler {
       }
       // Add more callback handlers as needed
     } catch (error) {
-      console.error('Callback handling error:', error);
+      logger.error('Callback handling error:', error);
     }
   }
 
@@ -496,7 +497,7 @@ export class CallbackHandler {
 
       await this.bot.sendMessage(chatId, result);
     } catch (error) {
-      console.error('REGISTER CALLBACK ERROR:', error);
+      logger.error('REGISTER CALLBACK ERROR:', error);
       await this.bot.sendMessage(chatId, 'Произошла ошибка при регистрации');
     }
   }
@@ -513,14 +514,14 @@ export class CallbackHandler {
       }
 
       const randomUser = users[Math.floor(Math.random() * users.length)];
-      const joke = await this.jokeRepository.getRandomJoke(JokeType.AGILLIOL);
+      const joke = await this.jokeRepository.getRandomJoke(JokeType.TAG_REGISTERED);
 
       await this.bot.sendMessage(
         chatId,
         `${randomUser.first_name} ${randomUser.last_name || ''}, ${joke?.joke || 'Ağıllı ol!'}`
       );
     } catch (error) {
-      console.error('AGILLIOL CALLBACK ERROR:', error);
+      logger.error('AGILLIOL CALLBACK ERROR:', error);
       await this.bot.sendMessage(chatId, 'Произошла ошибка');
     }
   }

@@ -4,6 +4,7 @@
 
 import { Pool } from 'pg';
 import { User, CreateUserDto, UpdateUserDto, GroupUser, UserWithGameStats } from '../../types/user.types';
+import { logger } from '../../utils/logger';
 
 export class UserRepository {
   constructor(private pool: Pool) {}
@@ -55,7 +56,7 @@ export class UserRepository {
 
       return '✅ Siz uğurla sistemdə qeydiyyatdan keçdiniz / Вы успешно зарегистрировались в системе';
     } catch (error) {
-      console.error('ADD USER ERROR:', error);
+      logger.error('ADD USER ERROR:', error);
       throw error;
     }
   }
@@ -74,7 +75,7 @@ export class UserRepository {
       );
       return result.rows;
     } catch (error) {
-      console.error('GET USERS ERROR:', error);
+      logger.error('GET USERS ERROR:', error);
       throw error;
     }
   }
@@ -92,7 +93,7 @@ export class UserRepository {
       );
       return result.rows[0] || null;
     } catch (error) {
-      console.error('GET LAST USER ERROR:', error);
+      logger.error('GET LAST USER ERROR:', error);
       throw error;
     }
   }
@@ -111,7 +112,7 @@ export class UserRepository {
       );
       return result.rows;
     } catch (error) {
-      console.error('SEARCH USER ERROR:', error);
+      logger.error('SEARCH USER ERROR:', error);
       throw error;
     }
   }
@@ -127,7 +128,7 @@ export class UserRepository {
       );
       return result.rows[0] || null;
     } catch (error) {
-      console.error('GET USER BY USERNAME ERROR:', error);
+      logger.error('GET USER BY USERNAME ERROR:', error);
       throw error;
     }
   }
@@ -143,7 +144,7 @@ export class UserRepository {
       );
       return result.rows[0] || null;
     } catch (error) {
-      console.error('GET USER CHAT ERROR:', error);
+      logger.error('GET USER CHAT ERROR:', error);
       throw error;
     }
   }
@@ -167,7 +168,7 @@ export class UserRepository {
       
       return result.rows[0] || null;
     } catch (error) {
-      console.error('UPDATE USER ERROR:', error);
+      logger.error('UPDATE USER ERROR:', error);
       throw error;
     }
   }
@@ -185,7 +186,7 @@ export class UserRepository {
       );
       return result.rows[0].id;
     } catch (error) {
-      console.error('ADD GUEST ERROR:', error);
+      logger.error('ADD GUEST ERROR:', error);
       throw error;
     }
   }
@@ -203,7 +204,7 @@ export class UserRepository {
       );
       return result.rows[0] || null;
     } catch (error) {
-      console.error('GET RANDOM USER ERROR:', error);
+      logger.error('GET RANDOM USER ERROR:', error);
       throw error;
     }
   }
@@ -226,7 +227,7 @@ export class UserRepository {
       );
       return result.rows;
     } catch (error) {
-      console.error('GET INACTIVE USERS ERROR:', error);
+      logger.error('GET INACTIVE USERS ERROR:', error);
       throw error;
     }
   }
@@ -245,7 +246,7 @@ export class UserRepository {
       );
       return result.rows;
     } catch (error) {
-      console.error('GET AZ LIST ERROR:', error);
+      logger.error('GET AZ LIST ERROR:', error);
       throw error;
     }
   }
@@ -290,7 +291,7 @@ export class UserRepository {
 
       return result.rows[0] || null;
     } catch (error) {
-      console.error('EDIT USER ERROR:', error);
+      logger.error('EDIT USER ERROR:', error);
       throw error;
     }
   }
@@ -306,7 +307,7 @@ export class UserRepository {
       );
       return (result.rowCount || 0) > 0;
     } catch (error) {
-      console.error('REMOVE USER ERROR:', error);
+      logger.error('REMOVE USER ERROR:', error);
       throw error;
     }
   }
@@ -322,7 +323,7 @@ export class UserRepository {
       );
       return result.rows[0] || null;
     } catch (error) {
-      console.error('GET USER BY NAME ERROR:', error);
+      logger.error('GET USER BY NAME ERROR:', error);
       throw error;
     }
   }
@@ -341,7 +342,7 @@ export class UserRepository {
       );
       return result.rows;
     } catch (error) {
-      console.error('GET USERS BY CHAT ID ERROR:', error);
+      logger.error('GET USERS BY CHAT ID ERROR:', error);
       throw error;
     }
   }

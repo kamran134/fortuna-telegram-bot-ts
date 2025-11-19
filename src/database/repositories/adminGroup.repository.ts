@@ -4,6 +4,7 @@
 
 import { Pool } from 'pg';
 import { AdminGroup, CreateAdminGroupDto } from '../../types/admin.types';
+import { logger } from '../../utils/logger';
 
 export class AdminGroupRepository {
   constructor(private pool: Pool) {}
@@ -22,7 +23,7 @@ export class AdminGroupRepository {
         [chatId, adminChatId, groupName]
       );
     } catch (error) {
-      console.error('ADD ADMIN GROUP ERROR:', error);
+      logger.error('ADD ADMIN GROUP ERROR:', error);
       throw error;
     }
   }
@@ -38,7 +39,7 @@ export class AdminGroupRepository {
       );
       return result.rows;
     } catch (error) {
-      console.error('GET GROUPS ERROR:', error);
+      logger.error('GET GROUPS ERROR:', error);
       throw error;
     }
   }
@@ -54,7 +55,7 @@ export class AdminGroupRepository {
       );
       return result.rows.length > 0;
     } catch (error) {
-      console.error('CHECK ADMIN ERROR:', error);
+      logger.error('CHECK ADMIN ERROR:', error);
       throw error;
     }
   }

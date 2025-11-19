@@ -4,6 +4,7 @@
 
 import { Pool } from 'pg';
 import { CreateGamePlayerDto, GamePlayerDetails } from '../../types/game.types';
+import { logger } from '../../utils/logger';
 
 export class GamePlayerRepository {
   constructor(private pool: Pool) {}
@@ -27,7 +28,7 @@ export class GamePlayerRepository {
       );
       return result.rows;
     } catch (error) {
-      console.error('GET GAME PLAYERS ERROR:', error);
+      logger.error('GET GAME PLAYERS ERROR:', error);
       throw error;
     }
   }
@@ -51,7 +52,7 @@ export class GamePlayerRepository {
       );
       return result.rows;
     } catch (error) {
-      console.error('GET UNDECIDED PLAYERS ERROR:', error);
+      logger.error('GET UNDECIDED PLAYERS ERROR:', error);
       throw error;
     }
   }
@@ -76,7 +77,7 @@ export class GamePlayerRepository {
       );
       return result.rows;
     } catch (error) {
-      console.error('GET UNDECIDED PLAYERS BY GAME LABEL ERROR:', error);
+      logger.error('GET UNDECIDED PLAYERS BY GAME LABEL ERROR:', error);
       throw error;
     }
   }
@@ -92,7 +93,7 @@ export class GamePlayerRepository {
       );
       return (result.rowCount || 0) > 0;
     } catch (error) {
-      console.error('CONFIRM PLAYER ATTENDANCE ERROR:', error);
+      logger.error('CONFIRM PLAYER ATTENDANCE ERROR:', error);
       throw error;
     }
   }
@@ -155,7 +156,7 @@ export class GamePlayerRepository {
 
       return gameResult.rows[0]?.label || null;
     } catch (error) {
-      console.error('ADD GAME PLAYER BY ID ERROR:', error);
+      logger.error('ADD GAME PLAYER BY ID ERROR:', error);
       throw error;
     }
   }
@@ -184,7 +185,7 @@ export class GamePlayerRepository {
         [userId, gameId, confirmed_attendance]
       );
     } catch (error) {
-      console.error('ADD GAME PLAYER BY LABEL ERROR:', error);
+      logger.error('ADD GAME PLAYER BY LABEL ERROR:', error);
       throw error;
     }
   }
@@ -226,7 +227,7 @@ export class GamePlayerRepository {
 
       return gameResult.rows[0]?.label || null;
     } catch (error) {
-      console.error('REMOVE GAME PLAYER ERROR:', error);
+      logger.error('REMOVE GAME PLAYER ERROR:', error);
       throw error;
     }
   }
