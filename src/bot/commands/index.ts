@@ -9,6 +9,7 @@ export { ShowGamesCommand } from './show-games.command';
 export { ListPlayersCommand } from './list-players.command';
 export { TagRegisteredCommand } from './tag-registered.command';
 export { DeactivateGameCommand } from './deactivate-game.command';
+export { ActivateGameCommand } from './activate-game.command';
 
 // Newly added commands
 export { ShowRegisteredCommand } from './show-registered.command';

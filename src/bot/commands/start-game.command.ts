@@ -6,7 +6,6 @@ import { BaseCommand } from './base.command';
 import { CommandContext } from '../../types/command.types';
 import { validateGameFormat, parseGameCommand } from '../../utils/validator';
 import { Messages } from '../../constants/messages';
-import { GAMES_TOPIC_ID } from '../../config/bot';
 
 export class StartGameCommand extends BaseCommand {
   readonly name = '/startgame';
@@ -35,8 +34,12 @@ export class StartGameCommand extends BaseCommand {
       const g = global as typeof globalThis & { selectedChatForStartGame?: Record<number, number> };
       const targetChatId = g.selectedChatForStartGame?.[context.chatId] || context.chatId;
       
-      // Always post game announcements to the games topic
-      await context.gameService.createGame(targetChatId, { ...gameData, chat_id: targetChatId }, GAMES_TOPIC_ID);
+      // Use messageThreadId from context (will be undefined for regular groups without topics)
+      await context.gameService.createGame(
+        targetChatId, 
+        { ...gameData, chat_id: targetChatId }, 
+        context.messageThreadId
+      );
       
       // Clear selected chat after game creation
       if (g.selectedChatForStartGame?.[context.chatId]) {

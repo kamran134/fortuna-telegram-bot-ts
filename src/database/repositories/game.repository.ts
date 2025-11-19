@@ -91,6 +91,42 @@ export class GameRepository {
   }
 
   /**
+   * Activate a game
+   */
+  async activateGame(gameId: number): Promise<string | null> {
+    const client = await this.pool.connect();
+
+    try {
+      const result = await client.query<{ label: string }>(
+        'UPDATE games SET status = TRUE WHERE id = $1 RETURNING label',
+        [gameId]
+      );
+      return result.rows[0]?.label || null;
+    } catch (error) {
+      logger.error('ACTIVATE GAME ERROR:', error);
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  /**
+   * Get last deactivated game for a chat
+   */
+  async getLastDeactivatedGame(chatId: number): Promise<Game | null> {
+    try {
+      const result = await this.pool.query<Game>(
+        'SELECT * FROM games WHERE chat_id = $1 AND status = FALSE ORDER BY id DESC LIMIT 1',
+        [chatId]
+      );
+      return result.rows[0] || null;
+    } catch (error) {
+      logger.error('GET LAST DEACTIVATED GAME ERROR:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Delete a game
    */
   async deleteGame(gameId: number): Promise<string | null> {

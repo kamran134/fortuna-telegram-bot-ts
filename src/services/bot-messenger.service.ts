@@ -21,12 +21,28 @@ export class BotMessenger {
     try {
       const sendOptions: SendMessageOptions = { ...options };
       
-      if (messageThreadId) {
+      // Only add thread_id if it's explicitly provided and not undefined/null
+      // For regular groups without topics, messageThreadId will be undefined
+      if (messageThreadId !== undefined && messageThreadId !== null) {
         sendOptions.message_thread_id = messageThreadId;
       }
 
       return await this.bot.sendMessage(chatId, text, sendOptions);
     } catch (error) {
+      // If error is "message thread not found", retry without thread_id
+      const errorMessage = (error as Error).message || '';
+      if (errorMessage.includes('thread') || errorMessage.includes('topic')) {
+        logger.warn('Topic/thread not found, retrying without thread_id', { chatId, messageThreadId });
+        try {
+          const retryOptions = { ...options };
+          delete retryOptions.message_thread_id;
+          return await this.bot.sendMessage(chatId, text, retryOptions);
+        } catch (retryError) {
+          logger.error('Failed to send message even without thread_id', retryError, { chatId });
+          return null;
+        }
+      }
+      
       logger.error('Failed to send message', error, { chatId, messageThreadId });
       return null;
     }

@@ -299,6 +299,57 @@ export class GameService {
   }
 
   /**
+   * Activate the last deactivated game
+   */
+  async activateGame(chatId: number, isAdmin: boolean, messageThreadId?: number): Promise<void> {
+    if (!isAdmin) {
+      await this.botMessenger.sendMessage(
+        chatId,
+        'Только одмэн может активировать игру.',
+        {},
+        messageThreadId
+      );
+      return;
+    }
+
+    try {
+      const game = await this.gameRepository.getLastDeactivatedGame(chatId);
+
+      if (!game) {
+        await this.botMessenger.sendMessage(
+          chatId,
+          'Нет деактивированных игр для активации',
+          {},
+          messageThreadId
+        );
+        return;
+      }
+
+      const activatedLabel = await this.gameRepository.activateGame(game.id);
+
+      if (activatedLabel) {
+        const declinedLabel = declineRussian(activatedLabel, 'винительный');
+        await this.botMessenger.sendMessage(
+          chatId,
+          `✅ Игра на ${declinedLabel} (${moment(game.game_date).format('DD.MM.YYYY')}) активирована!`,
+          {},
+          messageThreadId
+        );
+      } else {
+        await this.botMessenger.sendMessage(
+          chatId,
+          'Не удалось активировать игру',
+          {},
+          messageThreadId
+        );
+      }
+    } catch (error) {
+      logger.error('GAME SERVICE - ACTIVATE GAME ERROR:', error);
+      await this.botMessenger.sendMessage(chatId, Messages.ERROR_OCCURRED, {}, messageThreadId);
+    }
+  }
+
+  /**
    * Group players by game ID
    */
   private groupPlayersByGame(players: GamePlayerDetails[]) {

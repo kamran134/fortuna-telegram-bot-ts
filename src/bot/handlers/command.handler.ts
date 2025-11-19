@@ -26,6 +26,7 @@ import {
   ListPlayersCommand,
   TagRegisteredCommand,
   DeactivateGameCommand,
+  ActivateGameCommand,
   ShowRegisteredCommand,
   StartGameCommand,
   AddGuestCommand,
@@ -89,6 +90,7 @@ export class CommandHandler {
     this.commandRegistry.registerExact('/list', new ListPlayersCommand());
     this.commandRegistry.registerPrefix('/startgame', new StartGameCommand());
     this.commandRegistry.registerExact('/deactivegame', new DeactivateGameCommand());
+    this.commandRegistry.registerExact('/activategame', new ActivateGameCommand());
     this.commandRegistry.registerContains('во сколько', new WhatTimeCommand());
     this.commandRegistry.registerExact('/showregistered', new ShowRegisteredCommand());
     this.commandRegistry.registerExact('/tagregistered', new TagRegisteredCommand());
