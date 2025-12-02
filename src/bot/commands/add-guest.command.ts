@@ -5,6 +5,7 @@
 import { BaseCommand } from './base.command';
 import { CommandContext } from '../../types/command.types';
 import { Messages } from '../../constants/messages';
+import { capitalizeWords } from '../../utils/formatter';
 
 export class AddGuestCommand extends BaseCommand {
   readonly name = '/addguest';
@@ -29,7 +30,7 @@ export class AddGuestCommand extends BaseCommand {
     }
 
     const gameLabel = parts[0];
-    const fullname = parts[1].charAt(0).toUpperCase() + parts[1].slice(1);
+    const fullname = capitalizeWords(parts[1].trim());
     const confirmedAttendance = parts.length > 2 && parts[2].includes('*') ? false : true;
 
     await context.gameService.addGuestToGame(context.chatId, gameLabel, fullname, confirmedAttendance);
