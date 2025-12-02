@@ -577,8 +577,7 @@ export class GameService {
     messageThreadId?: number
   ): Promise<void> {
     try {
-      const undecidedPlayers = await this.gamePlayerRepository.getUndecidedPlayersByGameLabel(chatId, gameLabel);
-      const guests = undecidedPlayers.filter(p => p.is_guest);
+      const guests = await this.gamePlayerRepository.getGuestsByGameLabel(chatId, gameLabel);
 
       if (!guests || guests.length === 0) {
         await this.botMessenger.sendMessage(

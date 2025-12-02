@@ -83,6 +83,31 @@ export class GamePlayerRepository {
   }
 
   /**
+   * Get all guests for a specific game by label (regardless of confirmed_attendance)
+   */
+  async getGuestsByGameLabel(chatId: number, gameLabel: string): Promise<GamePlayerDetails[]> {
+    try {
+      const result = await this.pool.query<GamePlayerDetails>(
+        `SELECT 
+          gu.game_id, gu.user_id, gu.confirmed_attendance,
+          u.id as user_db_id, u.first_name, u.last_name, u.username, u.is_guest,
+          g.game_date, g.game_starts, g.game_ends, g.place, g.label, g.users_limit
+         FROM game_users gu
+         LEFT JOIN users u ON gu.user_id = u.id
+         LEFT JOIN games g ON gu.game_id = g.id
+         WHERE g.chat_id = $1 AND g.status = TRUE AND u.is_guest = TRUE 
+         AND LOWER(g.label) = LOWER($2)
+         ORDER BY gu.participate_time`,
+        [chatId, gameLabel]
+      );
+      return result.rows;
+    } catch (error) {
+      logger.error('GET GUESTS BY GAME LABEL ERROR:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Confirm player attendance (set confirmed_attendance to true)
    */
   async confirmPlayerAttendance(gameId: number, userDbId: number): Promise<boolean> {
