@@ -19,6 +19,8 @@ export { ChangeLimitCommand } from './change-limit.command';
 export { TagGamersCommand } from './tag-gamers.command';
 export { TagUndecidedCommand } from './tag-undecided.command';
 export { ConfirmGuestCommand } from './confirm-guest.command';
+export { DeleteGuestCommand } from './delete-guest.command';
+export { UnconfirmPlayerCommand } from './unconfirm-player.command';
 export { AgilliOlCommand } from './agilli-ol.command';
 export { GetGroupIdCommand } from './get-group-id.command';
 export { WhatTimeCommand } from './what-time.command';

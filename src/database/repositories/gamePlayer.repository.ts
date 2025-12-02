@@ -99,6 +99,86 @@ export class GamePlayerRepository {
   }
 
   /**
+   * Unconfirm player attendance (set confirmed_attendance to false)
+   */
+  async unconfirmPlayerAttendance(gameId: number, userDbId: number): Promise<boolean> {
+    try {
+      const result = await this.pool.query(
+        'UPDATE game_users SET confirmed_attendance = FALSE WHERE game_id = $1 AND user_id = $2',
+        [gameId, userDbId]
+      );
+      return (result.rowCount || 0) > 0;
+    } catch (error) {
+      logger.error('UNCONFIRM PLAYER ATTENDANCE ERROR:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Delete guest from game by user database ID
+   */
+  async deleteGuest(gameId: number, userDbId: number): Promise<boolean> {
+    try {
+      // First verify this is actually a guest
+      const userCheck = await this.pool.query(
+        'SELECT is_guest FROM users WHERE id = $1',
+        [userDbId]
+      );
+
+      if (userCheck.rows.length === 0 || !userCheck.rows[0].is_guest) {
+        // Not a guest, don't delete
+        return false;
+      }
+
+      // Delete from game_users
+      const deleteGameUser = await this.pool.query(
+        'DELETE FROM game_users WHERE game_id = $1 AND user_id = $2',
+        [gameId, userDbId]
+      );
+
+      if ((deleteGameUser.rowCount || 0) === 0) {
+        return false;
+      }
+
+      // Delete the guest user entirely (since guests are one-time)
+      await this.pool.query(
+        'DELETE FROM users WHERE id = $1 AND is_guest = TRUE',
+        [userDbId]
+      );
+
+      return true;
+    } catch (error) {
+      logger.error('DELETE GUEST ERROR:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get confirmed players for a specific game by label
+   */
+  async getConfirmedPlayersByGameLabel(chatId: number, gameLabel: string): Promise<GamePlayerDetails[]> {
+    try {
+      const result = await this.pool.query<GamePlayerDetails>(
+        `SELECT 
+          gu.game_id, gu.user_id, gu.confirmed_attendance,
+          u.id as user_db_id, u.first_name, u.last_name, u.username, u.is_guest,
+          g.game_date, g.game_starts, g.game_ends, g.place, g.label, g.users_limit
+         FROM game_users gu
+         LEFT JOIN users u ON gu.user_id = u.id
+         LEFT JOIN games g ON gu.game_id = g.id
+         WHERE g.chat_id = $1 AND g.status = TRUE AND gu.confirmed_attendance = TRUE 
+         AND LOWER(g.label) = LOWER($2)
+         ORDER BY gu.participate_time`,
+        [chatId, gameLabel]
+      );
+      return result.rows;
+    } catch (error) {
+      logger.error('GET CONFIRMED PLAYERS BY GAME LABEL ERROR:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Add player to game by game ID
    */
   async addGamePlayerById(dto: CreateGamePlayerDto & { chatId: number }): Promise<string | null> {

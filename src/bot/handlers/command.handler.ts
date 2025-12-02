@@ -34,6 +34,8 @@ import {
   TagGamersCommand,
   TagUndecidedCommand,
   ConfirmGuestCommand,
+  DeleteGuestCommand,
+  UnconfirmPlayerCommand,
   AgilliOlCommand,
   GetGroupIdCommand,
   WhatTimeCommand,
@@ -99,6 +101,8 @@ export class CommandHandler {
     this.commandRegistry.registerExact('/taggamers', new TagGamersCommand());
     this.commandRegistry.registerExact('/tagundecided', new TagUndecidedCommand());
     this.commandRegistry.registerExact('/confirmguest', new ConfirmGuestCommand());
+    this.commandRegistry.registerPrefix('/deleteguest', new DeleteGuestCommand());
+    this.commandRegistry.registerPrefix('/unconfirmplayer', new UnconfirmPlayerCommand());
     this.commandRegistry.registerPrefix('/adminedituser', new EditUserCommand());
     this.commandRegistry.registerExact('/getgroupid', new GetGroupIdCommand());
     this.commandRegistry.registerPrefix('/connectto', new ConnectToCommand());

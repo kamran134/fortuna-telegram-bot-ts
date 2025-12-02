@@ -68,6 +68,10 @@ export class CallbackHandler {
         await this.handleShowPrivate(query, user.id, user.username);
       } else if (data.startsWith('confirmplayer_')) {
         await this.handleConfirmPlayer(query, chatId);
+      } else if (data.startsWith('deleteguest_')) {
+        await this.handleDeleteGuest(query, chatId);
+      } else if (data.startsWith('unconfirmplayer_')) {
+        await this.handleUnconfirmPlayer(query, chatId);
       } else if (data === 'showgames') {
         await this.handleShowGamesCallback(query, chatId);
       } else if (data === 'list') {
@@ -204,42 +208,6 @@ export class CallbackHandler {
 
     if (label) {
       await this.bot.sendMessage(chatId, `Игра на ${declineRussian(label, 'винительный')} закрыта!`);
-    }
-  }
-
-  private async handleConfirmPlayer(query: CallbackQuery, chatId: number): Promise<void> {
-    // callback_data format: confirmplayer_gameId_userDbId
-    const parts = query.data?.split('_') || [];
-    const gameId = parseInt(parts[1] || '0');
-    const userDbId = parseInt(parts[2] || '0');
-
-    if (!gameId || !userDbId) {
-      await this.bot.answerCallbackQuery(query.id, { text: 'Ошибка: неверные данные' });
-      return;
-    }
-
-    const confirmed = await this.gamePlayerRepository.confirmPlayerAttendance(gameId, userDbId);
-
-    if (confirmed) {
-      await this.bot.answerCallbackQuery(query.id, { text: '✅ Игрок подтверждён!' });
-      
-      // Update the message to show it's confirmed
-      if (query.message) {
-        const messageText = query.message.text || '';
-        const updatedText = messageText + '\n\n✅ Подтверждено!';
-        
-        try {
-          await this.bot.editMessageText(updatedText, {
-            chat_id: chatId,
-            message_id: query.message.message_id,
-          });
-        } catch {
-          // Message might be too old to edit, just send a new message
-          await this.bot.sendMessage(chatId, '✅ Игрок подтверждён!');
-        }
-      }
-    } else {
-      await this.bot.answerCallbackQuery(query.id, { text: '❌ Игрок не найден или уже подтверждён' });
     }
   }
 
@@ -522,6 +490,69 @@ export class CallbackHandler {
       );
     } catch (error) {
       logger.error('AGILLIOL CALLBACK ERROR:', error);
+      await this.bot.sendMessage(chatId, 'Произошла ошибка');
+    }
+  }
+
+  private async handleConfirmPlayer(query: CallbackQuery, chatId: number): Promise<void> {
+    await this.bot.answerCallbackQuery(query.id);
+
+    try {
+      const parts = (query.data || '').split('_');
+      const gameId = parseInt(parts[1]);
+      const userDbId = parseInt(parts[2]);
+
+      const confirmed = await this.gamePlayerRepository.confirmPlayerAttendance(gameId, userDbId);
+
+      if (confirmed) {
+        await this.bot.sendMessage(chatId, '✅ Игрок подтверждён!');
+      } else {
+        await this.bot.sendMessage(chatId, '❌ Игрок не найден или уже подтверждён');
+      }
+    } catch (error) {
+      logger.error('CONFIRM PLAYER CALLBACK ERROR:', error);
+      await this.bot.sendMessage(chatId, 'Произошла ошибка');
+    }
+  }
+
+  private async handleDeleteGuest(query: CallbackQuery, chatId: number): Promise<void> {
+    await this.bot.answerCallbackQuery(query.id);
+
+    try {
+      const parts = (query.data || '').split('_');
+      const gameId = parseInt(parts[1]);
+      const userDbId = parseInt(parts[2]);
+
+      const deleted = await this.gamePlayerRepository.deleteGuest(gameId, userDbId);
+
+      if (deleted) {
+        await this.bot.sendMessage(chatId, '🗑️ Гость удалён из игры!');
+      } else {
+        await this.bot.sendMessage(chatId, '❌ Гость не найден или это не гость');
+      }
+    } catch (error) {
+      logger.error('DELETE GUEST CALLBACK ERROR:', error);
+      await this.bot.sendMessage(chatId, 'Произошла ошибка');
+    }
+  }
+
+  private async handleUnconfirmPlayer(query: CallbackQuery, chatId: number): Promise<void> {
+    await this.bot.answerCallbackQuery(query.id);
+
+    try {
+      const parts = (query.data || '').split('_');
+      const gameId = parseInt(parts[1]);
+      const userDbId = parseInt(parts[2]);
+
+      const unconfirmed = await this.gamePlayerRepository.unconfirmPlayerAttendance(gameId, userDbId);
+
+      if (unconfirmed) {
+        await this.bot.sendMessage(chatId, '❓ Игрок теперь не подтверждён (не точно)');
+      } else {
+        await this.bot.sendMessage(chatId, '❌ Игрок не найден или уже не подтверждён');
+      }
+    } catch (error) {
+      logger.error('UNCONFIRM PLAYER CALLBACK ERROR:', error);
       await this.bot.sendMessage(chatId, 'Произошла ошибка');
     }
   }

@@ -569,6 +569,121 @@ export class GameService {
   }
 
   /**
+   * Show guests for deletion
+   */
+  async showGuestsForDeletion(
+    chatId: number,
+    gameLabel: string,
+    messageThreadId?: number
+  ): Promise<void> {
+    try {
+      const undecidedPlayers = await this.gamePlayerRepository.getUndecidedPlayersByGameLabel(chatId, gameLabel);
+      const guests = undecidedPlayers.filter(p => p.is_guest);
+
+      if (!guests || guests.length === 0) {
+        await this.botMessenger.sendMessage(
+          chatId,
+          `На игру в ${declineRussian(gameLabel, 'винительный')} нет гостей для удаления`,
+          {},
+          messageThreadId
+        );
+        return;
+      }
+
+      const buttons = guests.map((guest, index) => {
+        const name = `${guest.first_name} ${guest.last_name || ''}`.trim();
+        // Callback format: deleteguest_gameId_userDbId
+        return [{
+          text: `🗑️ ${index + 1}. ${name}`,
+          callback_data: `deleteguest_${guest.game_id}_${guest.user_db_id || 0}`
+        }];
+      });
+
+      const message = 
+        `Гости на ${declineRussian(gameLabel, 'винительный')}:\n\n` +
+        guests.map((g, i) => {
+          const name = `${g.first_name} ${g.last_name || ''}`.trim();
+          return `${i + 1}. ${name}`;
+        }).join('\n') +
+        '\n\nНажмите на кнопку, чтобы удалить гостя:';
+
+      await this.botMessenger.sendMessageWithKeyboard(
+        chatId,
+        message,
+        { inline_keyboard: buttons },
+        {},
+        messageThreadId
+      );
+    } catch (error) {
+      logger.error('SHOW GUESTS FOR DELETION ERROR:', error);
+      await this.botMessenger.sendMessage(
+        chatId,
+        Messages.ERROR_OCCURRED,
+        {},
+        messageThreadId
+      );
+    }
+  }
+
+  /**
+   * Show confirmed players for unconfirmation
+   */
+  async showConfirmedPlayersForUnconfirmation(
+    chatId: number,
+    gameLabel: string,
+    messageThreadId?: number
+  ): Promise<void> {
+    try {
+      const confirmedPlayers = await this.gamePlayerRepository.getConfirmedPlayersByGameLabel(chatId, gameLabel);
+
+      if (!confirmedPlayers || confirmedPlayers.length === 0) {
+        await this.botMessenger.sendMessage(
+          chatId,
+          `На игру в ${declineRussian(gameLabel, 'винительный')} нет подтверждённых игроков`,
+          {},
+          messageThreadId
+        );
+        return;
+      }
+
+      const buttons = confirmedPlayers.map((player, index) => {
+        const name = `${player.first_name} ${player.last_name || ''}`.trim();
+        const guestLabel = player.is_guest ? ' (гость)' : '';
+        // Callback format: unconfirmplayer_gameId_userDbId
+        return [{
+          text: `❓ ${index + 1}. ${name}${guestLabel}`,
+          callback_data: `unconfirmplayer_${player.game_id}_${player.user_db_id || 0}`
+        }];
+      });
+
+      const message = 
+        `Подтверждённые игроки на ${declineRussian(gameLabel, 'винительный')}:\n\n` +
+        confirmedPlayers.map((p, i) => {
+          const name = `${p.first_name} ${p.last_name || ''}`.trim();
+          const guestLabel = p.is_guest ? ' (гость)' : '';
+          return `${i + 1}. ${name}${guestLabel}`;
+        }).join('\n') +
+        '\n\nНажмите на кнопку, чтобы сделать игрока неподтверждённым:';
+
+      await this.botMessenger.sendMessageWithKeyboard(
+        chatId,
+        message,
+        { inline_keyboard: buttons },
+        {},
+        messageThreadId
+      );
+    } catch (error) {
+      logger.error('SHOW CONFIRMED PLAYERS FOR UNCONFIRMATION ERROR:', error);
+      await this.botMessenger.sendMessage(
+        chatId,
+        Messages.ERROR_OCCURRED,
+        {},
+        messageThreadId
+      );
+    }
+  }
+
+  /**
    * Confirm player attendance
    */
   async confirmPlayer(gameId: number, userDbId: number): Promise<string> {
@@ -582,6 +697,42 @@ export class GameService {
       }
     } catch (error) {
       logger.error('CONFIRM PLAYER ERROR:', error);
+      return Messages.ERROR_OCCURRED;
+    }
+  }
+
+  /**
+   * Unconfirm player attendance (make confirmed player undecided)
+   */
+  async unconfirmPlayer(gameId: number, userDbId: number): Promise<string> {
+    try {
+      const unconfirmed = await this.gamePlayerRepository.unconfirmPlayerAttendance(gameId, userDbId);
+
+      if (unconfirmed) {
+        return '❓ Игрок теперь не подтверждён (не точно)';
+      } else {
+        return '❌ Игрок не найден или уже не подтверждён';
+      }
+    } catch (error) {
+      logger.error('UNCONFIRM PLAYER ERROR:', error);
+      return Messages.ERROR_OCCURRED;
+    }
+  }
+
+  /**
+   * Delete guest from game
+   */
+  async deleteGuest(gameId: number, userDbId: number): Promise<string> {
+    try {
+      const deleted = await this.gamePlayerRepository.deleteGuest(gameId, userDbId);
+
+      if (deleted) {
+        return '🗑️ Гость удалён из игры!';
+      } else {
+        return '❌ Гость не найден или это не гость';
+      }
+    } catch (error) {
+      logger.error('DELETE GUEST ERROR:', error);
       return Messages.ERROR_OCCURRED;
     }
   }
