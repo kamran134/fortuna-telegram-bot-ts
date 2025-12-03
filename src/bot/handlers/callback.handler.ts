@@ -202,12 +202,28 @@ export class CallbackHandler {
   }
 
   private async handleDeactivateGame(query: CallbackQuery, chatId: number): Promise<void> {
-    const gameId = parseInt(query.data?.replace('deactivegame_', '') || '0');
+    await this.bot.answerCallbackQuery(query.id);
 
-    const label = await this.gameRepository.deactivateGame(gameId);
+    try {
+      // Check if user is admin
+      const chatMember = await this.bot.getChatMember(chatId, query.from.id);
+      const isAdmin = chatMember.status === 'administrator' || chatMember.status === 'creator';
+      
+      if (!isAdmin) {
+        await this.bot.sendMessage(chatId, 'Только одмэн может закрыть игру!');
+        return;
+      }
 
-    if (label) {
-      await this.bot.sendMessage(chatId, `Игра на ${declineRussian(label, 'винительный')} закрыта!`);
+      const gameId = parseInt(query.data?.replace('deactivegame_', '') || '0');
+
+      const label = await this.gameRepository.deactivateGame(gameId);
+
+      if (label) {
+        await this.bot.sendMessage(chatId, `Игра на ${declineRussian(label, 'винительный')} закрыта!`);
+      }
+    } catch (error) {
+      logger.error('DEACTIVATE GAME CALLBACK ERROR:', error);
+      await this.bot.sendMessage(chatId, 'Произошла ошибка');
     }
   }
 
@@ -498,6 +514,15 @@ export class CallbackHandler {
     await this.bot.answerCallbackQuery(query.id);
 
     try {
+      // Check if user is admin
+      const chatMember = await this.bot.getChatMember(chatId, query.from.id);
+      const isAdmin = chatMember.status === 'administrator' || chatMember.status === 'creator';
+      
+      if (!isAdmin) {
+        await this.bot.sendMessage(chatId, 'Только одмэн может подтверждать игроков!');
+        return;
+      }
+
       const parts = (query.data || '').split('_');
       const gameId = parseInt(parts[1]);
       const userDbId = parseInt(parts[2]);
@@ -519,6 +544,15 @@ export class CallbackHandler {
     await this.bot.answerCallbackQuery(query.id);
 
     try {
+      // Check if user is admin
+      const chatMember = await this.bot.getChatMember(chatId, query.from.id);
+      const isAdmin = chatMember.status === 'administrator' || chatMember.status === 'creator';
+      
+      if (!isAdmin) {
+        await this.bot.sendMessage(chatId, 'Только одмэн может удалять гостей!');
+        return;
+      }
+
       const parts = (query.data || '').split('_');
       const gameId = parseInt(parts[1]);
       const userDbId = parseInt(parts[2]);
@@ -540,6 +574,15 @@ export class CallbackHandler {
     await this.bot.answerCallbackQuery(query.id);
 
     try {
+      // Check if user is admin
+      const chatMember = await this.bot.getChatMember(chatId, query.from.id);
+      const isAdmin = chatMember.status === 'administrator' || chatMember.status === 'creator';
+      
+      if (!isAdmin) {
+        await this.bot.sendMessage(chatId, 'Только одмэн может менять статус игроков!');
+        return;
+      }
+
       const parts = (query.data || '').split('_');
       const gameId = parseInt(parts[1]);
       const userDbId = parseInt(parts[2]);
